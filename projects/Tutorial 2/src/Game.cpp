@@ -35,7 +35,8 @@ void Game::Initialize()
 	if (gladLoadGLLoader((GLADloadproc)glfwGetProcAddress) == 0) {
 		std::cout << "Failed to initialize Glad" << std::endl;
 		throw std::runtime_error("Failed to initialize GLAD");
-	}
+	}
+
 }
 
 void Game::Shutdown()
@@ -76,7 +77,8 @@ void Game::InitImGui()
 		if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 			style.WindowRounding = 0.0f;
 			style.Colors[ImGuiCol_WindowBg].w = 0.8f;
-		}
+		}
+
 }
 
 void Game::ShutdownImGui()
@@ -94,7 +96,8 @@ void Game::ImGuiNewFrame()
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	// ImGui context new frame
-	ImGui::NewFrame();
+	ImGui::NewFrame();
+
 }
 
 void Game::ImGuiEndFrame()
@@ -114,7 +117,8 @@ void Game::ImGuiEndFrame()
 		ImGui::RenderPlatformWindowsDefault();
 		// Restore our gl context
 		glfwMakeContextCurrent(myWindow);
-	}
+	}
+
 }
 
 void Game::Run()
@@ -124,18 +128,109 @@ void Game::Run()
 	LoadContent();
 	static float prevFrame = glfwGetTime();
 	// Run as long as the window is open
+
+
+	//triangle data
+	static const GLfloat points[] =
+	{
+		//vertex			color
+		-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+		-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+		 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+		 0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 0.0f
+	};
+
+	static const GLuint indices[] =
+	{
+		0,1,2,
+		1,2,3
+	};
+
+	const char* vertexShader = 
+	"#version 400\n"
+	"layout (location = 0) in vec3 aPos;\n"
+	"layout (location = 1) in vec3 aColor;\n"
+	"out vec3 ourColor;\n"
+	"void main()\n"
+	"{\n"
+	"gl_Position = vec4(aPos, 1.0);\n"
+	"ourColor = aColor;\n"
+	"}0\n";
+
+	const char* fragmentShader =
+	"#version 400\n"
+	"out vec4 FragColor;\n"
+	"in vec3 ourColor;\n"
+	"void main()\n"
+	" {\n"
+	"FragColor = vec4(ourColor, 1.0);\n"
+	"}0\n";
+	
+	//Vertex Buffer Object
+	GLuint pos_VBO;
+	GLuint VAO;
+	GLuint EBO;
+
+	
+	glGenBuffers(1, &pos_VBO);
+	glGenBuffers(1, &EBO);
+	glGenVertexArrays(1, &VAO);
+
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, pos_VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	//position
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	//colour
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+
+
+	//creating the shaders from strings
+	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vs, 1, &vertexShader, NULL);
+	glCompileShader(vs);
+	
+	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fs, 1, &fragmentShader, NULL);
+	glCompileShader(fs);
+
+	//creating shader program
+	GLuint myShader = glCreateProgram();
+	glAttachShader(myShader, vs);
+	glAttachShader(myShader, fs);
+	glLinkProgram(myShader);
+
+	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	
 	while (!glfwWindowShouldClose(myWindow)) {
 		// Poll for events from windows
 		// clicks, key presses, closing, all that
 		glfwPollEvents();
+		
 		float thisFrame = glfwGetTime();
 		float deltaTime = thisFrame - prevFrame;
 		Update(deltaTime);
+
+
+		//draw vertices
+		
+		glUseProgram(myShader);
+		glBindVertexArray(VAO);
+		
 		Draw(deltaTime);
 		ImGuiNewFrame();
 		DrawGui(deltaTime);
 		ImGuiEndFrame();
 		prevFrame = thisFrame;
+		//glDrawArrays(GL_TRIANGLES, 0, 6);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		// Present our image to windows
 		glfwSwapBuffers(myWindow);
 	}
@@ -160,7 +255,8 @@ void Game::DrawGui(float deltaTime)
 	// Open a new ImGui window
 	ImGui::Begin("Test");
 	// Draw widgets here
-	ImGui::End();	// Draw a color editor
+	ImGui::End();
+	// Draw a color editor
 	ImGui::ColorEdit4("Clear Color", &myClearColor[0]);
 	// Check if a textbox has changed, and update our window title if it has
 	if (ImGui::InputText("Window Title", myWindowTitle, 32)) {

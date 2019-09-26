@@ -4,6 +4,7 @@
 #include "Game.h"
 #include "Logging.h"
 
+
 int main() {
 
 	Logger::Init();
