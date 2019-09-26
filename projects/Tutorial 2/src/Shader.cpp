@@ -1,5 +1,36 @@
 #include "Shader.h"
 #include <Logging.h>
+#include <fstream>
+
+char* readFile(const char* filename) {
+	// Declare and open the file stream
+	std::ifstream file;
+	file.open(filename, std::ios::binary);
+	// Only read if the file is open
+	if (file.is_open()) {
+		// Get the starting location in the file
+		uint64_t fileSize = file.tellg();
+		// Seek to the end
+		file.seekg(0, std::ios::end);
+		// Calculate the file size from end to beginning
+		fileSize = (uint64_t)file.tellg() - fileSize;
+		// Seek back to the beginning of the file
+		file.seekg(0, std::ios::beg);
+		// Allocate space for our entire file, +1 byte at the end for null terminator
+		char* result = new char[fileSize + 1];
+		// Read the entire file to our memory
+		file.read(result, fileSize);
+		// Make our text null-terminated
+		result[fileSize] = '\0';
+		// Close the file before returning
+		file.close();
+		return result;
+	}
+	// Otherwise, we failed to open our file, throw a runtime error
+	else {
+		throw std::runtime_error("We cannot open the file!");
+	}
+}
 
 Shader::Shader() {
 	myShaderHandle = glCreateProgram();
@@ -9,6 +40,17 @@ Shader::~Shader() {
 }
 void Shader::Use() {
 	glUseProgram(myShaderHandle);
+}
+
+void Shader::Load(const char* vsFile, const char* fsFile) {
+	// Load in our shaders
+	char* vs_source = readFile(vsFile);
+	char* fs_source = readFile(fsFile);
+	// Compile our program
+	Compile(vs_source, fs_source);
+	// Clean up our memory
+	delete[] fs_source;
+	delete[] vs_source;
 }
 
 GLuint Shader::__CompileShaderPart(const char* source, GLenum type) {

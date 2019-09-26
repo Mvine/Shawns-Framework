@@ -5,7 +5,6 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
 #include "Logging.h"
-#include "Shader.h"
 
 
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
@@ -57,6 +56,23 @@ void Game::Shutdown()
 
 void Game::LoadContent()
 {
+	// Create our 4 vertices
+	Vertex vertices[4] = {
+		// Position Color
+		// x y z r g b a
+		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ 0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
+		{{ -0.5f, 0.5f, 0.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }},
+		{{ 0.5f, 0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
+	};
+
+	// Create our 6 indices
+	uint32_t indices[6] = {
+	0, 1, 2,
+	2, 1, 3
+	};
+	// Create a new mesh from the data
+	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
 }
 
 void Game::UnloadContent()
@@ -138,56 +154,23 @@ void Game::Run()
 	InitImGui();
 	LoadContent();
 	static float prevFrame = glfwGetTime();
-	// Run as long as the window is open
-
-
-	//triangle data
-	static const GLfloat points[] =
-	{
-		//vertex			color
-		-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-		-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-		 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-		 0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 0.0f
-	};
-
-	static const GLuint indices[] =
-	{
-		0,1,2,
-		1,2,3
-	};
 	
-	//Vertex Buffer Object
-	GLuint pos_VBO;
-	GLuint VAO;
-	GLuint EBO;
-
-	
-	glGenBuffers(1, &pos_VBO);
-	glGenBuffers(1, &EBO);
-	glGenVertexArrays(1, &VAO);
-
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, pos_VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
+	//Null vertex for size ref
+	Vertex* vert = nullptr;
 	//position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Position));
 	glEnableVertexAttribArray(0);
 	//colour
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Color));
 	glEnableVertexAttribArray(1);
 
 
 
 	//creating the shaders from strings
-	Shader myShader;
-	myShader.Compile("shader.vert", "shader.frag");
-	myShader.Use();
-	//creating shader program
+	myShader = std::make_shared<Shader>();
+	myShader->Load("source.vert", "source.frag");
+	myShader->Use();
+	//creating shader program 
 
 	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	
@@ -203,8 +186,8 @@ void Game::Run()
 
 		//draw vertices
 		
-		myShader.Use();
-		glBindVertexArray(VAO);
+		myShader->Use();
+		myMesh->Draw();
 		
 		Draw(deltaTime);
 		ImGuiNewFrame();
@@ -230,6 +213,10 @@ void Game::Draw(float deltaTime)
 	// Clear our screen every frame
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
 	glClear(GL_COLOR_BUFFER_BIT);
+
+	
+	myShader->Use();
+	myMesh->Draw();
 }
 
 void Game::DrawGui(float deltaTime)

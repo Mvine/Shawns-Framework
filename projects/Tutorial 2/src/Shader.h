@@ -11,8 +11,9 @@ public:
 	// Loads a shader program from 2 files. vsFile is the path to
 	//the vertex shader, and fsFile is the path to the fragment shader
 	
-		void Load(const char* vsFile, const char* fsFile) { }
+	void Load(const char* vsFile, const char* fsFile);
 	void Use();
+	
 private:
 	GLuint __CompileShaderPart(const char* source, GLenum type);
 	GLuint myShaderHandle;

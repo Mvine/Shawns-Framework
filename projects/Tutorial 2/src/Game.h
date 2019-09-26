@@ -3,6 +3,9 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include "GLM/glm.hpp"
+#include "Shader.h"
+#include "Mesh.h"
+
 class Game {
 public:
 	Game();
@@ -27,4 +30,8 @@ private:
 	glm::vec4 myClearColor;
 	// Stores the title of the game's window
 	char myWindowTitle[32];
+	// A shared pointer to our mesh
+	Mesh::Sptr myMesh;
+	// A shared pointer to our shader
+	Shader::Sptr myShader;
 };
