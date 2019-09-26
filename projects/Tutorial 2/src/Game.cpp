@@ -5,6 +5,13 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
 #include "Logging.h"
+#include "Shader.h"
+
+
+void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
+{
+	glViewport(0, 0, width, height);
+}
 
 Game::Game():
 		myWindow(nullptr),
@@ -31,12 +38,16 @@ void Game::Initialize()
 	myWindow = glfwCreateWindow(600, 600, myWindowTitle, nullptr, nullptr);
 	// We want GL commands to be executed for our window, so we make our window's context the current one
 	glfwMakeContextCurrent(myWindow);
+
+	//Tie our game to the window
+	glfwSetWindowUserPointer(myWindow, this);
+	//
+	glfwSetWindowSizeCallback(myWindow, GlfwWindowResizedCallback);
 	// Let glad know what function loader we are using (will call gl commands via glfw)
 	if (gladLoadGLLoader((GLADloadproc)glfwGetProcAddress) == 0) {
 		std::cout << "Failed to initialize Glad" << std::endl;
 		throw std::runtime_error("Failed to initialize GLAD");
 	}
-
 }
 
 void Game::Shutdown()
@@ -145,26 +156,6 @@ void Game::Run()
 		0,1,2,
 		1,2,3
 	};
-
-	const char* vertexShader = 
-	"#version 400\n"
-	"layout (location = 0) in vec3 aPos;\n"
-	"layout (location = 1) in vec3 aColor;\n"
-	"out vec3 ourColor;\n"
-	"void main()\n"
-	"{\n"
-	"gl_Position = vec4(aPos, 1.0);\n"
-	"ourColor = aColor;\n"
-	"}0\n";
-
-	const char* fragmentShader =
-	"#version 400\n"
-	"out vec4 FragColor;\n"
-	"in vec3 ourColor;\n"
-	"void main()\n"
-	" {\n"
-	"FragColor = vec4(ourColor, 1.0);\n"
-	"}0\n";
 	
 	//Vertex Buffer Object
 	GLuint pos_VBO;
@@ -193,19 +184,10 @@ void Game::Run()
 
 
 	//creating the shaders from strings
-	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vs, 1, &vertexShader, NULL);
-	glCompileShader(vs);
-	
-	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fs, 1, &fragmentShader, NULL);
-	glCompileShader(fs);
-
+	Shader myShader;
+	myShader.Compile("shader.vert", "shader.frag");
+	myShader.Use();
 	//creating shader program
-	GLuint myShader = glCreateProgram();
-	glAttachShader(myShader, vs);
-	glAttachShader(myShader, fs);
-	glLinkProgram(myShader);
 
 	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 	
@@ -221,7 +203,7 @@ void Game::Run()
 
 		//draw vertices
 		
-		glUseProgram(myShader);
+		myShader.Use();
 		glBindVertexArray(VAO);
 		
 		Draw(deltaTime);
