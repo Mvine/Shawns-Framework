@@ -60,19 +60,30 @@ void Game::LoadContent()
 	Vertex vertices[4] = {
 		// Position Color
 		// x y z r g b a
-		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{ 0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
-		{{ -0.5f, 0.5f, 0.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }},
-		{{ 0.5f, 0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
+		{{ -0.75f, -0.75f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ -0.25f, -0.75f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ -0.75f, -0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ -0.25f, -0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+	};
+
+	Vertex vertices2[4] = {
+		// Position Color
+		// x y z r g b a
+		{{ -0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},
+		{{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
+		{{ -0.5f, 0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }},
 	};
 
 	// Create our 6 indices
 	uint32_t indices[6] = {
 	0, 1, 2,
-	2, 1, 3
+	2, 1, 3,
 	};
 	// Create a new mesh from the data
 	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
+	
+	myMesh2 = std::make_shared<Mesh>(vertices2, 4, indices, 6);
 }
 
 void Game::UnloadContent()
@@ -157,6 +168,11 @@ void Game::Run()
 	
 	//Null vertex for size ref
 	Vertex* vert = nullptr;
+
+	//creating the shaders from strings
+	myShader = std::make_shared<Shader>();
+	myShader->Load("source.vert", "source.frag");
+
 	//position
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Position));
 	glEnableVertexAttribArray(0);
@@ -165,11 +181,15 @@ void Game::Run()
 	glEnableVertexAttribArray(1);
 
 
-
-	//creating the shaders from strings
-	myShader = std::make_shared<Shader>();
-	myShader->Load("source.vert", "source.frag");
-	myShader->Use();
+	myShader2 = std::make_shared<Shader>();
+	myShader2->Load("source2.vert", "source.frag");
+	//position
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Position));
+	glEnableVertexAttribArray(0);
+	//colour
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Color));
+	glEnableVertexAttribArray(1);
+	
 	//creating shader program 
 
 	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -186,16 +206,11 @@ void Game::Run()
 
 		//draw vertices
 		
-		myShader->Use();
-		myMesh->Draw();
-		
 		Draw(deltaTime);
 		ImGuiNewFrame();
 		DrawGui(deltaTime);
 		ImGuiEndFrame();
 		prevFrame = thisFrame;
-		//glDrawArrays(GL_TRIANGLES, 0, 6);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		// Present our image to windows
 		glfwSwapBuffers(myWindow);
 	}
@@ -213,10 +228,10 @@ void Game::Draw(float deltaTime)
 	// Clear our screen every frame
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
 	glClear(GL_COLOR_BUFFER_BIT);
-
-	
 	myShader->Use();
+	myShader2->Use();
 	myMesh->Draw();
+	myMesh2->Draw();
 }
 
 void Game::DrawGui(float deltaTime)

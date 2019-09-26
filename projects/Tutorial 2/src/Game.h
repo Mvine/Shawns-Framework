@@ -32,6 +32,8 @@ private:
 	char myWindowTitle[32];
 	// A shared pointer to our mesh
 	Mesh::Sptr myMesh;
+	Mesh::Sptr myMesh2;
 	// A shared pointer to our shader
-	Shader::Sptr myShader;
+	Shader::Sptr myShader;
+	Shader::Sptr myShader2;
 };
