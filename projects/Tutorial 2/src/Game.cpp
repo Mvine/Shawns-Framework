@@ -5,8 +5,10 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_glfw.h"
 #include "Logging.h"
+#include <GLM/gtc/matrix_transform.hpp>
 
-
+#define HEIGHT 800.0f
+#define WIDTH 800.0f
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -22,8 +24,6 @@ Game::~Game()
 {
 }
 
-
-
 void Game::Initialize()
 {
 	// Initialize GLFW
@@ -34,7 +34,7 @@ void Game::Initialize()
 	// Enable transparent backbuffers for our windows (note that Windows expects our colors to be pre-multiplied with alpha)
 	glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, true);
 	// Create a new GLFW window
-	myWindow = glfwCreateWindow(600, 600, myWindowTitle, nullptr, nullptr);
+	myWindow = glfwCreateWindow(WIDTH, HEIGHT, myWindowTitle, nullptr, nullptr);
 	// We want GL commands to be executed for our window, so we make our window's context the current one
 	glfwMakeContextCurrent(myWindow);
 
@@ -60,19 +60,10 @@ void Game::LoadContent()
 	Vertex vertices[4] = {
 		// Position Color
 		// x y z r g b a
-		{{ -0.75f, -0.75f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{ -0.25f, -0.75f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{ -0.75f, -0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{ -0.25f, -0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-	};
-
-	Vertex vertices2[4] = {
-		// Position Color
-		// x y z r g b a
-		{{ -0.5f, -0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f }},
-		{{ 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
-		{{ -0.5f, 0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{ 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f }},
+		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{  0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
 	};
 
 	// Create our 6 indices
@@ -80,10 +71,9 @@ void Game::LoadContent()
 	0, 1, 2,
 	2, 1, 3,
 	};
+	
 	// Create a new mesh from the data
 	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
-	
-	myMesh2 = std::make_shared<Mesh>(vertices2, 4, indices, 6);
 }
 
 void Game::UnloadContent()
@@ -166,23 +156,14 @@ void Game::Run()
 	LoadContent();
 	static float prevFrame = glfwGetTime();
 	
+	
 	//Null vertex for size ref
 	Vertex* vert = nullptr;
 
 	//creating the shaders from strings
 	myShader = std::make_shared<Shader>();
 	myShader->Load("source.vert", "source.frag");
-
-	//position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Position));
-	glEnableVertexAttribArray(0);
-	//colour
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Color));
-	glEnableVertexAttribArray(1);
-
-
-	myShader2 = std::make_shared<Shader>();
-	myShader2->Load("source2.vert", "source.frag");
+	
 	//position
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Position));
 	glEnableVertexAttribArray(0);
@@ -190,11 +171,11 @@ void Game::Run()
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Color));
 	glEnableVertexAttribArray(1);
 	
-	//creating shader program 
-
-	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+	//Enabling Wireframe / filll draw mode
+	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 	
-	while (!glfwWindowShouldClose(myWindow)) {
+	while (!glfwWindowShouldClose(myWindow))
+	{
 		// Poll for events from windows
 		// clicks, key presses, closing, all that
 		glfwPollEvents();
@@ -203,7 +184,13 @@ void Game::Run()
 		float deltaTime = thisFrame - prevFrame;
 		Update(deltaTime);
 
+		//check to see if we should be passing in the ortho matrix or the perspective matrix
+		if (isOrtho)
+			projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
+		else
+			projection = glm::perspective(45.0f, WIDTH / HEIGHT, 0.1f, 100.0f);
 
+		myShader->setMat4("projection", projection);
 		//draw vertices
 		
 		Draw(deltaTime);
@@ -229,9 +216,7 @@ void Game::Draw(float deltaTime)
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
 	glClear(GL_COLOR_BUFFER_BIT);
 	myShader->Use();
-	myShader2->Use();
 	myMesh->Draw();
-	myMesh2->Draw();
 }
 
 void Game::DrawGui(float deltaTime)

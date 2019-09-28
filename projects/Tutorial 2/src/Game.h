@@ -32,8 +32,12 @@ private:
 	char myWindowTitle[32];
 	// A shared pointer to our mesh
 	Mesh::Sptr myMesh;
-	Mesh::Sptr myMesh2;
 	// A shared pointer to our shader
 	Shader::Sptr myShader;
-	Shader::Sptr myShader2;
+	//Ortho or perspective mode
+	bool isOrtho = false;
+	//view and projection matrices
+	glm::mat4 view = glm::mat4(1.0f);
+	glm::mat4 projection = glm::mat4(1.0f);
+
 };

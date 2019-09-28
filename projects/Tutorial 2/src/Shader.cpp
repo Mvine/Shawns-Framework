@@ -2,10 +2,11 @@
 #include <Logging.h>
 #include <fstream>
 
-char* readFile(const char* filename) {
+char* readFile(const char* fileName)
+{
 	// Declare and open the file stream
 	std::ifstream file;
-	file.open(filename, std::ios::binary);
+	file.open(fileName, std::ios::binary);
 	// Only read if the file is open
 	if (file.is_open()) {
 		// Get the starting location in the file
@@ -31,7 +32,6 @@ char* readFile(const char* filename) {
 		throw std::runtime_error("We cannot open the file!");
 	}
 }
-
 Shader::Shader() {
 	myShaderHandle = glCreateProgram();
 }
@@ -42,6 +42,53 @@ void Shader::Use() {
 	glUseProgram(myShaderHandle);
 }
 
+void Shader::setFloat(const std::string& name, const float& a_Float)
+{
+	glUniform1f(glGetUniformLocation(myShaderHandle, name.c_str()), a_Float);
+}
+
+void Shader::setInt(const std::string& name, const int& a_Int)
+{
+	glUniform1i(glGetUniformLocation(myShaderHandle, name.c_str()), a_Int);
+}
+
+void Shader::setBoolean(const std::string& name, const bool& a_bool) 
+{
+	glUniform1i(glGetUniformLocation(myShaderHandle, name.c_str()), a_bool);
+}
+
+void Shader::setVec2(const std::string& name, const glm::vec2& vec2)
+{
+	glUniform2fv(glGetUniformLocation(myShaderHandle, name.c_str()),1 , &vec2[0]);
+}
+
+void Shader::setVec3(const std::string& name, const glm::vec3& vec3)
+{
+	glUniform3fv(glGetUniformLocation(myShaderHandle, name.c_str()), 1, &vec3[0]);
+}
+
+void Shader::setVec4(const std::string& name, const glm::vec4& vec4)
+{
+	glUniform4fv(glGetUniformLocation(myShaderHandle, name.c_str()), 1, &vec4[0]);
+}
+
+void Shader::setMat4(const std::string& name, const glm::mat4& mat4) 
+{
+	glUniformMatrix4fv(glGetUniformLocation(myShaderHandle, name.c_str()), 1, GL_FALSE, &mat4[0][0]);
+}
+
+void Shader::setMat3(const std::string& name, const glm::mat3& mat3)
+{
+	glUniformMatrix3fv(glGetUniformLocation(myShaderHandle, name.c_str()), 1, GL_FALSE, &mat3[0][0]);
+}
+
+void Shader::setMat2(const std::string& name, const glm::mat2& mat2)
+{
+	glUniformMatrix2fv(glGetUniformLocation(myShaderHandle, name.c_str()), 1, GL_FALSE, &mat2[0][0]);
+}
+
+
+
 void Shader::Load(const char* vsFile, const char* fsFile) {
 	// Load in our shaders
 	char* vs_source = readFile(vsFile);
@@ -50,7 +97,8 @@ void Shader::Load(const char* vsFile, const char* fsFile) {
 	Compile(vs_source, fs_source);
 	// Clean up our memory
 	delete[] fs_source;
-	delete[] vs_source;
+	delete[] vs_source;
+
 }
 
 GLuint Shader::__CompileShaderPart(const char* source, GLenum type) {
