@@ -6,9 +6,10 @@
 #include "imgui_impl_glfw.h"
 #include "Logging.h"
 #include <GLM/gtc/matrix_transform.hpp>
+#include <GLM/gtc/type_ptr.hpp>
 
-#define HEIGHT 800.0f
-#define WIDTH 800.0f
+#define HEIGHT 800
+#define WIDTH 800
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -17,7 +18,7 @@ void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
 Game::Game():
 		myWindow(nullptr),
 		myWindowTitle("Game"),
-		myClearColor(glm::vec4(0.1f, 0.7f, 0.5f, 0.8f))
+		myClearColor(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f))
 {}
 
 Game::~Game()
@@ -40,13 +41,18 @@ void Game::Initialize()
 
 	//Tie our game to the window
 	glfwSetWindowUserPointer(myWindow, this);
-	//
+	
+	//change whats drawn on window resize
 	glfwSetWindowSizeCallback(myWindow, GlfwWindowResizedCallback);
+	
 	// Let glad know what function loader we are using (will call gl commands via glfw)
 	if (gladLoadGLLoader((GLADloadproc)glfwGetProcAddress) == 0) {
 		std::cout << "Failed to initialize Glad" << std::endl;
 		throw std::runtime_error("Failed to initialize GLAD");
 	}
+
+	glEnable(GL_DEPTH_TEST);
+	
 }
 
 void Game::Shutdown()
@@ -60,20 +66,21 @@ void Game::LoadContent()
 	Vertex vertices[4] = {
 		// Position Color
 		// x y z r g b a
-		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{  0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
+		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
+		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
+		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
+		{{  0.5f,  0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
 	};
 
 	// Create our 6 indices
-	uint32_t indices[6] = {
+	uint32_t faceIndices[6] = {
 	0, 1, 2,
 	2, 1, 3,
 	};
 	
 	// Create a new mesh from the data
-	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
+	//myMesh = std::make_shared<Mesh>(vertices, 4, faceIndices, 6);
+	myMesh = std::make_shared<Mesh>("Models\shittyCannon.obj");
 }
 
 void Game::UnloadContent()
@@ -172,7 +179,8 @@ void Game::Run()
 	glEnableVertexAttribArray(1);
 	
 	//Enabling Wireframe / filll draw mode
-	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+
 	
 	while (!glfwWindowShouldClose(myWindow))
 	{
@@ -184,16 +192,35 @@ void Game::Run()
 		float deltaTime = thisFrame - prevFrame;
 		Update(deltaTime);
 
+
+		
+		//draw vertices
+		
+		Draw(deltaTime);
+
+		//zeroing out the model and view matrices
+		view = glm::mat4(1.0f);
+		myMesh->model = glm::mat4(1.0f);
+		
 		//check to see if we should be passing in the ortho matrix or the perspective matrix
 		if (isOrtho)
 			projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
 		else
-			projection = glm::perspective(45.0f, WIDTH / HEIGHT, 0.1f, 100.0f);
+			projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
+		myMesh->model = glm::rotate(myMesh->model,glm::radians(-70.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+
+		unsigned int modelLoc = glGetUniformLocation(myShader->getID(), "model");
+		unsigned int viewLoc = glGetUniformLocation(myShader->getID(), "view");
+
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(myMesh->model));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
+
+		//set projection matrix
 		myShader->setMat4("projection", projection);
-		//draw vertices
 		
-		Draw(deltaTime);
+		//other updates
 		ImGuiNewFrame();
 		DrawGui(deltaTime);
 		ImGuiEndFrame();

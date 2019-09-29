@@ -87,6 +87,11 @@ void Shader::setMat2(const std::string& name, const glm::mat2& mat2)
 	glUniformMatrix2fv(glGetUniformLocation(myShaderHandle, name.c_str()), 1, GL_FALSE, &mat2[0][0]);
 }
 
+GLuint Shader::getID()
+{
+	return myShaderHandle;
+}
+
 
 
 void Shader::Load(const char* vsFile, const char* fsFile) {

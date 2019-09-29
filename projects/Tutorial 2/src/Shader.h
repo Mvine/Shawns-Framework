@@ -30,6 +30,8 @@ public:
 	void setMat4(const std::string& name, const glm::mat4& mat4);
 	void setMat3(const std::string& name, const glm::mat3& mat3);
 	void setMat2(const std::string& name, const glm::mat2& mat2);
+
+	GLuint getID();
 	
 	
 private:

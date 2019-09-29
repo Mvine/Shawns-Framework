@@ -1,10 +1,50 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "Mesh.h"
 #include <vector>
 #include <stdio.h>
 #include <fstream>
 #include <Logging.h>
 
-Mesh::Mesh(Vertex* vertices, size_t numVerts, uint32_t* indices, size_t numIndices)
+#define BUFFER_OFFSET(i) ((char*)0 + (i)) //cheers emilian
+
+
+struct Face
+{
+	Face()
+	{
+		for(int i = 0 ; i < 3 ; i++)
+		{
+			vertices[i] = 0;
+			normals[i]  = 0;
+			uvs[i]		= 0;
+		}
+	}
+
+	Face(unsigned int v1, unsigned int v2, unsigned int v3, 
+		unsigned int u1, unsigned int u2, unsigned int u3,
+		unsigned int n1, unsigned int n2, unsigned int n3)
+	{
+		vertices[0] = v1;
+		 normals[0]	= n1;
+		     uvs[0] = u1;
+
+		vertices[1] = v2;
+		 normals[1] = n2;
+		     uvs[1] = u2;
+
+		vertices[2] = v3;
+		 normals[2] = n3;
+		     uvs[2] = u3;
+	}
+	
+	unsigned int vertices[3];
+	unsigned int normals[3];
+	unsigned int uvs[3];
+};
+
+
+
+Mesh::Mesh(Vertex* vertices, size_t numVerts, uint32_t* faceIndices, size_t numIndices)
 {
 	myIndexCount = numIndices;
 	myVertexCount = numVerts;
@@ -18,7 +58,7 @@ Mesh::Mesh(Vertex* vertices, size_t numVerts, uint32_t* indices, size_t numIndic
 	glBufferData(GL_ARRAY_BUFFER, numVerts * sizeof(Vertex), vertices, GL_STATIC_DRAW);
 	// Bind and buffer our index data
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, myBuffers[1]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(uint32_t), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(uint32_t), faceIndices, GL_STATIC_DRAW);
 	// Get a null vertex to get member offsets from
 	Vertex* vert = nullptr;
 
@@ -36,124 +76,9 @@ Mesh::Mesh(Vertex* vertices, size_t numVerts, uint32_t* indices, size_t numIndic
 	glBindVertexArray(0);
 }
 
-Mesh::Mesh(const char* objFilePath)
+Mesh::Mesh(const char* filePath)
 {
-	//temporary data locations
-	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
-	std::vector<glm::vec3> tempVerts, tempNormals;
-	std::vector<glm::vec2> tempUvs;
-
-	//opening the file
-	FILE* file = fopen(objFilePath, "r");
-
-	//making sure the file opened
-	if(!file)
-	{
-		throw std::runtime_error("Unable to open file");
-	}
-	
-	//running through the first word of each line to check for v, vt, and vn
-	while(true)
-	{
-		//first word, assumed to be less than 128 characters
-		char first[128];
-		
-		//scanning until End Of File
-		unsigned int i =  fscanf(file, "%s", first);
-		if (i == EOF)
-			break;
-		else
-		{
-			//comparing what was read to "v" to see if we should read vertex data
-			if(strcmp (first, "v") == 0)
-			{
-				//reading vertex data into a vector that we store in the temporary container we made earlier
-				glm::vec3 vertex;
-				unsigned int dataMatch = fscanf(file, "%f %f %f \n", &vertex.x, &vertex.y, &vertex.z);
-				tempVerts.push_back(vertex);
-
-				//quick error check
-				if (dataMatch != 9)
-					throw std::runtime_error("Unable to read vertex data");
-			}
-
-			//comparing what was read to "vt" to see if we should read uv data
-			if(strcmp (first, "vt") == 0)
-			{
-				//reading uv data into a vector that we store in the temporary container we made earlier
-				glm::vec2 uv;
-				unsigned int dataMatch = fscanf(file, "%f %f\n", &uv.x, &uv.y);
-				tempUvs.push_back(uv);
-				
-				//quick error check
-				if (dataMatch != 2)
-					throw std::runtime_error("Unable to read uv data");
-			}
-
-			//comparing what was read to "vn" to see if we should read normal data
-			if(strcmp (first, "vn") == 0)
-			{
-				//reading normal data into a vector that we store in the temporary container we made earlier
-				glm::vec3 normal;
-				unsigned int dataMatch = fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-				tempNormals.push_back(normal);
-				
-				//quick error check
-				if (dataMatch != 3)
-					throw std::runtime_error("Unable to read normal data");
-			}
-
-			//comparing what was read to "f" to see if we should read face data
-			if (strcmp(first, "f") == 0)
-			{
-				//read in the data that makes each vertex and group them into tri's
-				unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
-				//vI/vtI/vnI
-				int dataMatch = fscanf(file, "%d %d %d  %d %d %d  %d %d %d\n",  &vertexIndex[0], &uvIndex[0], &normalIndex[0], 
-																&vertexIndex[1], &uvIndex[1], &normalIndex[1], 
-																&vertexIndex[2], &uvIndex[2], &normalIndex[2]);
-				//quick error check
-				if(dataMatch != 9)
-					throw std::runtime_error("Unable to read face data, check to make sure faces are triangulated");
-				
-				for(int i = 0; i < 3 ; i++)
-				{
-					vertexIndices.push_back(vertexIndex[i]);
-					uvIndices.push_back(uvIndex[i]);
-					normalIndices.push_back(normalIndex[i]);
-				}
-				
-			}
-		}
-	}
-	
-	
-	// Create and bind our vertex array
-	glCreateVertexArrays(1, &myVao);
-	glBindVertexArray(myVao);
-	// Create 2 buffers, 1 for vertices and the other for indices
-	glCreateBuffers(2, myBuffers);
-	// Bind and buffer our vertex data
-	glBindBuffer(GL_ARRAY_BUFFER, myBuffers[0]);
-	//glBufferData(GL_ARRAY_BUFFER, numVerts * sizeof(Vertex), vertices, GL_STATIC_DRAW);
-	// Bind and buffer our index data
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, myBuffers[1]);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, numIndices * sizeof(uint32_t), indices, GL_STATIC_DRAW);
-	// Get a null vertex to get member offsets from
-	Vertex* vert = nullptr;
-
-	// Enable vertex attribute 0
-	glEnableVertexAttribArray(0);
-	// Our first attribute is 3 floats, the distance between
-	// them is the size of our vertex, and they will map to the position in our vertices
-	glVertexAttribPointer(0, 3, GL_FLOAT, false, sizeof(Vertex), &(vert->Position));
-	// Enable vertex attribute 1
-	glEnableVertexAttribArray(1);
-	// Our second attribute is 4 floats, the distance between
-	// them is the size of our vertex, and they will map to the color in our vertices
-	glVertexAttribPointer(1, 4, GL_FLOAT, false, sizeof(Vertex), &(vert->Color));
-	// Unbind our VAO
-	glBindVertexArray(0);
+	loadObj(filePath);
 }
 
 Mesh::~Mesh() {
@@ -163,9 +88,203 @@ Mesh::~Mesh() {
 	glDeleteVertexArrays(1, &myVao);
 }
 
+bool Mesh::loadObj(const std::string& objPath)
+{
+	std::ifstream input;
+	input.open(objPath);
+
+	if(!input)
+	{
+		//some kind of error handling
+		return false;
+	}
+
+	char inputString[128];
+
+	//unique data
+	std::vector<glm::vec3> vertexData;
+	std::vector<glm::vec3> normalData;
+	std::vector<glm::vec2> uvData;
+	//index data / face data
+	std::vector<Face> faceData;
+	//OpenGl ready data
+	std::vector<float> unPackedVertexData;
+	std::vector<float> unPackedNormalData;
+	std::vector<float> unPackedTextureData;
+
+	while(!input.eof())
+	{
+		input.getline(inputString, 128);
+		
+		//Comments
+		if (std::strstr(inputString,"#") != nullptr)
+		{
+			continue;
+		}
+		
+		/////////////////////Normal Data////////////////////////
+		else if (std::strstr(inputString, "vn") != nullptr)
+		{
+			glm::vec3 temp;
+			
+			//using sscanf returns the number of matches in the line to the format we provided
+			unsigned int matches = std::sscanf(inputString, "vn %f %f %f", &temp.x, &temp.y, &temp.z);
+
+			//use matches to make sure our data is all loaded properly
+			if (matches != 3)
+				throw std::runtime_error("can't load normal data");
+
+			//push back our loaded data
+			normalData.push_back(temp);
+		}
+		
+		/////////////////////Texture Data////////////////////////
+		else if (std::strstr(inputString, "vt") != nullptr)
+		{
+			glm::vec2 temp;
+			
+			//using sscanf returns the number of matches in the line to the format we provided
+			unsigned int matches = std::sscanf(inputString, "vt %f %f", &temp.x, &temp.y);
+
+			//use matches to make sure our data is all loaded properly
+			if(matches != 2)
+				throw std::runtime_error("can't load texture data");
+
+			//push back our loaded data
+			uvData.push_back(temp);
+		}
+		
+		/////////////////////Vertex Data////////////////////////
+		else if(std::strstr(inputString, "v") != nullptr)
+		{
+			glm::vec3 temp;
+
+			//using sscanf returns the number of matches in the line to the format we provided
+			unsigned int matches = std::sscanf(inputString, "v %f %f %f", &temp.x, &temp.y, &temp.z);
+			//use matches to make sure our data is all loaded properly
+			if (matches != 3)
+				throw std::runtime_error("can't load texture data");
+			
+			//push back our loaded data
+			vertexData.push_back(temp);
+		}
+		
+		///////////////////////Face Data/////////////////////////
+		else if (std::strstr(inputString, "f") != nullptr)
+		{
+			Face temp;
+
+			//using sscanf returns the number of matches in the line to the format we provided
+			unsigned int matches = std::sscanf(inputString, "f %u/%u/%u %u/%u/%u %u/%u/%u", 
+				&temp.vertices[0], &temp.uvs[0], &temp.normals[0], 
+				&temp.vertices[1], &temp.uvs[1], &temp.normals[1],
+				&temp.vertices[2], &temp.uvs[2], &temp.normals[2]);
+
+			//use matches to make sure our data is all loaded properly
+			if (matches != 9)
+				throw std::runtime_error("can't load face data");
+
+			//push back our loaded data
+			faceData.push_back(temp);
+		}
+
+	}
+		input.close();
+
+	//unpacking data
+	for(int i = 0 ; i <faceData.size(); i++)
+	{
+		for(int j = 0 ; j < 3 ; j++)
+		{
+			unPackedVertexData.push_back(vertexData[faceData[i].vertices[j] - 1].x);
+			unPackedVertexData.push_back(vertexData[faceData[i].vertices[j] - 1].y);
+			unPackedVertexData.push_back(vertexData[faceData[i].vertices[j] - 1].z);
+
+			unPackedTextureData.push_back(uvData[faceData[i].uvs[j] - 1].x);
+			unPackedTextureData.push_back(uvData[faceData[i].uvs[j] - 1].y);
+
+			unPackedNormalData.push_back(normalData[faceData[i].normals[j] - 1].x);
+			unPackedNormalData.push_back(normalData[faceData[i].normals[j] - 1].y);
+			unPackedNormalData.push_back(normalData[faceData[i].normals[j] - 1].z);
+			
+		}
+	}
+
+	numFaces = faceData.size();
+	numVertices = numFaces * 3;
+
+	//Send data to openGl
+	glGenVertexArrays(1, &myVao);
+	
+	glGenBuffers(1, &vertexVBO);
+	glGenBuffers(1, &textureVBO);
+	glGenBuffers(1, &normalVBO);
+
+	glBindVertexArray(myVao);
+
+	glEnableVertexAttribArray(0); //Vertex -> Uvs-> Normals all stored
+	glEnableVertexAttribArray(1); //Vertex -> Uvs-> Normals all stored
+	glEnableVertexAttribArray(2); //Vertex -> Uvs-> Normals all stored
+
+	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedVertexData.size(), &unPackedVertexData[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, false, sizeof(float) * 3, BUFFER_OFFSET(0));
+
+	glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedTextureData.size(), &unPackedTextureData[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, false, sizeof(float) * 2, BUFFER_OFFSET(0));
+
+	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedNormalData.size(), &unPackedNormalData[0], GL_STATIC_DRAW);
+	glVertexAttribPointer((GLuint)2, 3, GL_FLOAT, false, sizeof(float) * 3, BUFFER_OFFSET(0));
+
+	//cleanup
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	vertexData.clear();
+	uvData.clear();
+	normalData.clear();
+	faceData.clear();
+	unPackedVertexData.clear();
+	unPackedTextureData.clear();
+	unPackedNormalData.clear();
+
+	return true;
+}
+
+void Mesh::unloadObj()
+{
+	glDeleteBuffers(1, &normalVBO);
+	glDeleteBuffers(1, &textureVBO);
+	glDeleteBuffers(1, &vertexVBO);
+
+	glDeleteVertexArrays(1, &myVao);
+
+	normalVBO = 0;
+	textureVBO = 0;
+	vertexVBO = 0;
+
+	myVao = 0;
+
+	numFaces = 0;
+	numVertices = 0;
+}
+
+unsigned int Mesh::getNumFaces() const
+{
+	return numFaces;
+}
+
+unsigned int Mesh::getNumVertices() const
+{
+	return numVertices;
+}
+
 void Mesh::Draw() {
 	// Bind the mesh
 	glBindVertexArray(myVao);
 	// Draw all of our vertices as triangles, our indexes are unsigned ints (uint32_t)
-	glDrawElements(GL_TRIANGLES, myIndexCount, GL_UNSIGNED_INT, nullptr);
+	glDrawArrays(GL_TRIANGLES, 0, numVertices);
+	//glDrawElements(GL_TRIANGLES, myIndexCount, GL_UNSIGNED_INT, nullptr);
 }
