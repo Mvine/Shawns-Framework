@@ -285,6 +285,6 @@ void Mesh::Draw() {
 	// Bind the mesh
 	glBindVertexArray(myVao);
 	// Draw all of our vertices as triangles, our indexes are unsigned ints (uint32_t)
-	//glDrawArrays(GL_TRIANGLES, 0, 6);
+	//glDrawArrays(GL_TRIANGLES, 0, numVertices);
 	glDrawElements(GL_TRIANGLES, myIndexCount, GL_UNSIGNED_INT, nullptr);
 }

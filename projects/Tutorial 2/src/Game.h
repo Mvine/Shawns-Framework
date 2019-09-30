@@ -36,6 +36,10 @@ private:
 	Shader::Sptr myShader;
 	//Ortho or perspective mode
 	bool isOrtho = false;
+	//wireframe mode
+	bool isWireframe = false;
+
+	float zoom = -3.0;
 	//view and projection matrices
 	glm::mat4 view = glm::mat4(1.0f);
 	glm::mat4 projection = glm::mat4(1.0f);

@@ -167,14 +167,18 @@ void Game::Run()
 	myShader = std::make_shared<Shader>();
 	myShader->Load("source.vert", "source.frag");
 
-	//Enabling Wireframe / filll draw mode
-	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 
 	while (!glfwWindowShouldClose(myWindow))
 	{
 		// Poll for events from windows
 		// clicks, key presses, closing, all that
 		glfwPollEvents();
+		
+		//Enabling Wireframe / filll draw mode
+		if (isWireframe)
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		
 		float thisFrame = glfwGetTime();
 		float deltaTime = thisFrame - prevFrame;
@@ -194,7 +198,7 @@ void Game::Run()
 			projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
 		myMesh->model = glm::rotate(myMesh->model,glm::radians(-70.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, zoom));
 
 		unsigned int modelLoc = glGetUniformLocation(myShader->getID(), "model");
 		unsigned int viewLoc = glGetUniformLocation(myShader->getID(), "view");
@@ -226,7 +230,7 @@ void Game::Draw(float deltaTime)
 {
 	// Clear our screen every frame
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	myShader->Use();
 	myMesh->Draw();
 }
@@ -243,5 +247,9 @@ void Game::DrawGui(float deltaTime)
 	if (ImGui::InputText("Window Title", myWindowTitle, 32)) {
 		glfwSetWindowTitle(myWindow, myWindowTitle);
 	}
+	//orthographic camera view
 	ImGui::Checkbox("Orthographic", &isOrtho);
+	//wireframe draw mode
+	ImGui::Checkbox("Wireframe", &isWireframe);
+	ImGui::SliderFloat("Zoom", &zoom, -20.0f, 10.0f);
 }
