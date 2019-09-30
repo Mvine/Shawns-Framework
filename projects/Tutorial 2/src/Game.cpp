@@ -18,7 +18,7 @@ void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
 Game::Game():
 		myWindow(nullptr),
 		myWindowTitle("Game"),
-		myClearColor(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f))
+		myClearColor(glm::vec4(0.7f, 0.5f, 0.2f, 1.0f))
 {}
 
 Game::~Game()
@@ -66,21 +66,21 @@ void Game::LoadContent()
 	Vertex vertices[4] = {
 		// Position Color
 		// x y z r g b a
-		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
-		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
-		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
-		{{  0.5f,  0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }},
+		{{ -0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 1.0f, 1.0f }},
+		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }},
+		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
+		{{  0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
 	};
 
 	// Create our 6 indices
-	uint32_t faceIndices[6] = {
+	uint32_t indices[6] = {
 	0, 1, 2,
 	2, 1, 3,
 	};
 	
 	// Create a new mesh from the data
-	//myMesh = std::make_shared<Mesh>(vertices, 4, faceIndices, 6);
-	myMesh = std::make_shared<Mesh>("Models\shittyCannon.obj");
+	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
+	//myMesh = std::make_shared<Mesh>("Models\shittyCannon.obj");
 }
 
 void Game::UnloadContent()
@@ -162,26 +162,14 @@ void Game::Run()
 	InitImGui();
 	LoadContent();
 	static float prevFrame = glfwGetTime();
-	
-	
-	//Null vertex for size ref
-	Vertex* vert = nullptr;
 
 	//creating the shaders from strings
 	myShader = std::make_shared<Shader>();
 	myShader->Load("source.vert", "source.frag");
-	
-	//position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Position));
-	glEnableVertexAttribArray(0);
-	//colour
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), &(vert->Color));
-	glEnableVertexAttribArray(1);
-	
-	//Enabling Wireframe / filll draw mode
-	glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 
-	
+	//Enabling Wireframe / filll draw mode
+	glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+
 	while (!glfwWindowShouldClose(myWindow))
 	{
 		// Poll for events from windows
@@ -192,12 +180,9 @@ void Game::Run()
 		float deltaTime = thisFrame - prevFrame;
 		Update(deltaTime);
 
-
-		
 		//draw vertices
-		
 		Draw(deltaTime);
-
+		
 		//zeroing out the model and view matrices
 		view = glm::mat4(1.0f);
 		myMesh->model = glm::mat4(1.0f);
@@ -258,4 +243,5 @@ void Game::DrawGui(float deltaTime)
 	if (ImGui::InputText("Window Title", myWindowTitle, 32)) {
 		glfwSetWindowTitle(myWindow, myWindowTitle);
 	}
+	ImGui::Checkbox("Orthographic", &isOrtho);
 }
