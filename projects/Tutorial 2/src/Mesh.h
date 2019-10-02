@@ -16,6 +16,7 @@ public:
 	// Creates a new mesh from the given vertices and indices
 	Mesh(Vertex* vertices, size_t numVerts, uint32_t* indices, size_t numIndices);
 	Mesh(const char* filePath);
+	Mesh();
 	~Mesh();
 
 	// Load an obj file

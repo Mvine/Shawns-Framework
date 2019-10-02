@@ -81,6 +81,11 @@ Mesh::Mesh(const char* filePath)
 	loadObj(filePath);
 }
 
+Mesh::Mesh()
+{
+	
+}
+
 Mesh::~Mesh() {
 	// Clean up our buffers
 	glDeleteBuffers(2, myBuffers);
@@ -222,9 +227,6 @@ bool Mesh::loadObj(const std::string& objPath)
 
 	glBindVertexArray(myVao);
 
-	glEnableVertexAttribArray(0); //Vertex -> Uvs-> Normals all stored
-	glEnableVertexAttribArray(1); //Vertex -> Uvs-> Normals all stored
-	glEnableVertexAttribArray(2); //Vertex -> Uvs-> Normals all stored
 
 	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedVertexData.size(), &unPackedVertexData[0], GL_STATIC_DRAW);
@@ -237,6 +239,10 @@ bool Mesh::loadObj(const std::string& objPath)
 	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedNormalData.size(), &unPackedNormalData[0], GL_STATIC_DRAW);
 	glVertexAttribPointer((GLuint)2, 3, GL_FLOAT, false, sizeof(float) * 3, BUFFER_OFFSET(0));
+
+	glEnableVertexAttribArray(0); //Vertex 
+	glEnableVertexAttribArray(1); //Uvs
+	glEnableVertexAttribArray(2); //Normals 
 
 	//cleanup
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -285,6 +291,6 @@ void Mesh::Draw() {
 	// Bind the mesh
 	glBindVertexArray(myVao);
 	// Draw all of our vertices as triangles, our indexes are unsigned ints (uint32_t)
-	//glDrawArrays(GL_TRIANGLES, 0, numVertices);
-	glDrawElements(GL_TRIANGLES, myIndexCount, GL_UNSIGNED_INT, nullptr);
+	glDrawArrays(GL_TRIANGLES, 0, numVertices);
+	//glDrawElements(GL_TRIANGLES, myIndexCount, GL_UNSIGNED_INT, nullptr);
 }

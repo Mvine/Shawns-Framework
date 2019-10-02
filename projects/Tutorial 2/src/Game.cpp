@@ -79,8 +79,10 @@ void Game::LoadContent()
 	};
 	
 	// Create a new mesh from the data
-	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
+	//myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
 	//myMesh = std::make_shared<Mesh>("Models\shittyCannon.obj");
+	myMesh = std::make_shared<Mesh>();
+	myMesh->loadObj("cube.obj");
 }
 
 void Game::UnloadContent()
@@ -193,11 +195,11 @@ void Game::Run()
 		
 		//check to see if we should be passing in the ortho matrix or the perspective matrix
 		if (isOrtho)
-			projection = glm::ortho(0.0f, 800.0f, 0.0f, 600.0f, 0.1f, 100.0f);
+			projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 		else
 			projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
 
-		myMesh->model = glm::rotate(myMesh->model,glm::radians(-70.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		myMesh->model = glm::rotate(myMesh->model,glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 		view = glm::translate(view, glm::vec3(0.0f, 0.0f, zoom));
 
 		unsigned int modelLoc = glGetUniformLocation(myShader->getID(), "model");

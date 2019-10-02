@@ -1,6 +1,7 @@
 #version 410
- layout (location = 0) in vec4 inColor;
- layout (location = 0) out vec4 outColor;
+
+out vec4 outColor;
+
  void main() {
- outColor = inColor;
+ outColor = vec4(0.5f, 1.0f, 0.5f, 1.0f);
  }
