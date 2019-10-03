@@ -5,6 +5,7 @@
 #include "GLM/glm.hpp"
 #include "Shader.h"
 #include "Mesh.h"
+#include "Camera.h"
 
 class Game {
 public:
@@ -34,14 +35,13 @@ private:
 	Mesh::Sptr cubeMesh;
 	// A shared pointer to our shader
 	Shader::Sptr myShader;
+	// A shared pointer to our camera
+	Camera::Sptr myCamera;
 	//Ortho or perspective mode
 	bool isOrtho = false;
 	//wireframe mode
 	bool isWireframe = false;
 
-	float zoom = 0;
-	//view and projection matrices
-	glm::mat4 view = glm::mat4(1.0f);
-	glm::mat4 projection = glm::mat4(1.0f);
+	float fov = 45.0f;
 
 };

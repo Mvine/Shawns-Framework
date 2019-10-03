@@ -222,11 +222,9 @@ bool Mesh::loadObj(const std::string& objPath)
 	glGenVertexArrays(1, &myVao);
 	
 	glBindVertexArray(myVao);
-	glGenBuffers(1, &vertexVBO);
-	//glGenBuffers(1, &textureVBO);
-	//glGenBuffers(1, &normalVBO);
+	glGenBuffers(1, &myVBO);
 	
-	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, myVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedVertexData.size(), unPackedVertexData.data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0); //Vertex 
@@ -256,15 +254,11 @@ bool Mesh::loadObj(const std::string& objPath)
 
 void Mesh::unloadObj()
 {
-	glDeleteBuffers(1, &normalVBO);
-	glDeleteBuffers(1, &textureVBO);
-	glDeleteBuffers(1, &vertexVBO);
+	glDeleteBuffers(1, &myVBO);
 
 	glDeleteVertexArrays(1, &myVao);
 
-	normalVBO = 0;
-	textureVBO = 0;
-	vertexVBO = 0;
+	myVBO = 0;
 
 	myVao = 0;
 

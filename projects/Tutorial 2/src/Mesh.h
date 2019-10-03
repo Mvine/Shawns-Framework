@@ -38,7 +38,7 @@ private:
 	// 0 is vertices, 1 is indices
 	GLuint myBuffers[2];
 
-	GLuint vertexVBO, textureVBO, normalVBO;
+	GLuint myVBO;
 	// The number of vertices and indices in this mesh
 	size_t myVertexCount, myIndexCount;
 

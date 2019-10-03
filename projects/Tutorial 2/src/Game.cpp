@@ -62,25 +62,11 @@ void Game::Shutdown()
 
 void Game::LoadContent()
 {
-	// Create our 4 vertices
-	Vertex vertices[4] = {
-		// Position Color
-		// x y z r g b a
-		{{ -0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 1.0f, 1.0f }},
-		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }},
-		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
-		{{  0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-	};
-
-	// Create our 6 indices
-	uint32_t indices[6] = {
-	0, 1, 2,
-	2, 1, 3,
-	};
-	
+	myCamera = std::make_shared<Camera>();
+	myCamera->SetPosition(glm::vec3(0, 0, -20));
+	myCamera->LookAt(glm::vec3(0));
 	// Create a new mesh from the data
-	//cubeMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
-	//myMesh = std::make_shared<Mesh>("Models\shittyCannon.obj");
+
 	cubeMesh = std::make_shared<Mesh>("cube.obj");
 }
 
@@ -189,24 +175,23 @@ void Game::Run()
 		//draw vertices
 		Draw(deltaTime);
 
-		//zeroing out the model and view matrices
 		cubeMesh->model = glm::mat4(1.0f);
-		view = glm::mat4(1.0f);
 		//check to see if we should be passing in the ortho matrix or the perspective matrix
-		if (isOrtho)
-			projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
+		if (myCamera->isOrtho)
+			myCamera->SetProjection(glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 100.0f));
 		else
-			projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
-		
+			myCamera->SetProjection(glm::perspective(fov, (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f));
+
+		//model translation
 		cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(-5.0f, 0.0f, -2.0f));
 		cubeMesh->model = glm::rotate(cubeMesh->model,glm::radians(thisFrame * 20), glm::vec3(0.0f, 1.0f, 0.0f));
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, zoom - 17));
+		
 		
 		//set projection matrix
 		myShader->Use();
-		myShader->setMat4("model", cubeMesh->model); 
-		myShader->setMat4("view", view);
-		myShader->setMat4("projection", projection);
+		myShader->setMat4("model", cubeMesh->model);
+		myShader->setMat4("view", myCamera->GetView());
+		myShader->setMat4("projection", myCamera->GetProjection());
 		
 		//other updates
 		ImGuiNewFrame();
@@ -223,6 +208,40 @@ void Game::Run()
 
 void Game::Update(float deltaTime)
 {
+	glm::vec3 movement = glm::vec3(0.0f);
+	glm::vec3 rotation = glm::vec3(0.0f);
+	float speed = 10.0f;
+	float rotSpeed = 20.0f;
+
+	if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
+		movement.z -= speed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_S) == GLFW_PRESS)
+		movement.z += speed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_A) == GLFW_PRESS)
+		movement.x -= speed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_D) == GLFW_PRESS)
+		movement.x += speed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
+		movement.y += speed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		movement.y -= speed * deltaTime;
+
+	if (glfwGetKey(myWindow, GLFW_KEY_Q) == GLFW_PRESS)
+		rotation.z -= rotSpeed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_E) == GLFW_PRESS)
+		rotation.z += rotSpeed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_UP) == GLFW_PRESS)
+		rotation.x -= rotSpeed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_DOWN) == GLFW_PRESS)
+		rotation.x += rotSpeed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_LEFT) == GLFW_PRESS)
+		rotation.y -= rotSpeed * deltaTime;
+	if (glfwGetKey(myWindow, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		rotation.y += rotSpeed * deltaTime;
+	
+	// Rotate and move our camera based on input
+	myCamera->Rotate(rotation);
+	myCamera->Move(movement);
 }
 
 void Game::Draw(float deltaTime)
@@ -234,7 +253,7 @@ void Game::Draw(float deltaTime)
 	cubeMesh->Draw();
 	//changing the matrix to draw it in a different place a second time
 	cubeMesh->model = glm::mat4(1.0f);
-	cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(5.0f, 0.0f, -2.0f));
+	cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(10.0f, 0.0f, -2.0f));
 	cubeMesh->model = glm::rotate(cubeMesh->model, glm::radians((float)glfwGetTime() * 20), glm::vec3(0.0f, 1.0f, 0.0f));
 	myShader->setMat4("model", cubeMesh->model);
 	cubeMesh->Draw();
@@ -253,8 +272,8 @@ void Game::DrawGui(float deltaTime)
 		glfwSetWindowTitle(myWindow, myWindowTitle);
 	}
 	//orthographic camera view
-	ImGui::Checkbox("Orthographic", &isOrtho);
+	ImGui::Checkbox("Orthographic", &myCamera->isOrtho);
 	//wireframe draw mode
 	ImGui::Checkbox("Wireframe", &isWireframe);
-	ImGui::SliderFloat("Zoom", &zoom, -20.0f, 20.0f);
+	ImGui::SliderFloat("FOV", &fov, 40.0f, 60.0f);
 }
