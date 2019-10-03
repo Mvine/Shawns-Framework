@@ -9,7 +9,7 @@
 #include <GLM/gtc/type_ptr.hpp>
 
 #define HEIGHT 800
-#define WIDTH 800
+#define WIDTH 1500
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -18,7 +18,7 @@ void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height)
 Game::Game():
 		myWindow(nullptr),
 		myWindowTitle("Game"),
-		myClearColor(glm::vec4(0.7f, 0.5f, 0.2f, 1.0f))
+		myClearColor(glm::vec4(0.2f, 0.5f, 0.55f, 1.0f))
 {}
 
 Game::~Game()
@@ -79,10 +79,9 @@ void Game::LoadContent()
 	};
 	
 	// Create a new mesh from the data
-	//myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
+	//cubeMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
 	//myMesh = std::make_shared<Mesh>("Models\shittyCannon.obj");
-	myMesh = std::make_shared<Mesh>();
-	myMesh->loadObj("cube.obj");
+	cubeMesh = std::make_shared<Mesh>("cube.obj");
 }
 
 void Game::UnloadContent()
@@ -148,6 +147,7 @@ void Game::ImGuiEndFrame()
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	// If we have multiple viewports enabled (can drag into a new window)
+	
 	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
 		// Update the windows that ImGui is using
 		ImGui::UpdatePlatformWindows();
@@ -175,40 +175,37 @@ void Game::Run()
 		// Poll for events from windows
 		// clicks, key presses, closing, all that
 		glfwPollEvents();
-		
+
 		//Enabling Wireframe / filll draw mode
 		if (isWireframe)
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		
+
 		float thisFrame = glfwGetTime();
 		float deltaTime = thisFrame - prevFrame;
 		Update(deltaTime);
 
 		//draw vertices
 		Draw(deltaTime);
-		
+
 		//zeroing out the model and view matrices
+		cubeMesh->model = glm::mat4(1.0f);
 		view = glm::mat4(1.0f);
-		myMesh->model = glm::mat4(1.0f);
-		
 		//check to see if we should be passing in the ortho matrix or the perspective matrix
 		if (isOrtho)
 			projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
 		else
 			projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / (float)HEIGHT, 0.1f, 100.0f);
-
-		myMesh->model = glm::rotate(myMesh->model,glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		view = glm::translate(view, glm::vec3(0.0f, 0.0f, zoom));
-
-		unsigned int modelLoc = glGetUniformLocation(myShader->getID(), "model");
-		unsigned int viewLoc = glGetUniformLocation(myShader->getID(), "view");
-
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(myMesh->model));
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &view[0][0]);
-
+		
+		cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(-5.0f, 0.0f, -2.0f));
+		cubeMesh->model = glm::rotate(cubeMesh->model,glm::radians(thisFrame * 20), glm::vec3(0.0f, 1.0f, 0.0f));
+		view = glm::translate(view, glm::vec3(0.0f, 0.0f, zoom - 17));
+		
 		//set projection matrix
+		myShader->Use();
+		myShader->setMat4("model", cubeMesh->model); 
+		myShader->setMat4("view", view);
 		myShader->setMat4("projection", projection);
 		
 		//other updates
@@ -234,7 +231,13 @@ void Game::Draw(float deltaTime)
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	myShader->Use();
-	myMesh->Draw();
+	cubeMesh->Draw();
+	//changing the matrix to draw it in a different place a second time
+	cubeMesh->model = glm::mat4(1.0f);
+	cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(5.0f, 0.0f, -2.0f));
+	cubeMesh->model = glm::rotate(cubeMesh->model, glm::radians((float)glfwGetTime() * 20), glm::vec3(0.0f, 1.0f, 0.0f));
+	myShader->setMat4("model", cubeMesh->model);
+	cubeMesh->Draw();
 }
 
 void Game::DrawGui(float deltaTime)
@@ -253,5 +256,5 @@ void Game::DrawGui(float deltaTime)
 	ImGui::Checkbox("Orthographic", &isOrtho);
 	//wireframe draw mode
 	ImGui::Checkbox("Wireframe", &isWireframe);
-	ImGui::SliderFloat("Zoom", &zoom, -20.0f, 10.0f);
+	ImGui::SliderFloat("Zoom", &zoom, -20.0f, 20.0f);
 }

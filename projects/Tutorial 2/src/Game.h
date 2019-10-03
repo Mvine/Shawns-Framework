@@ -31,7 +31,7 @@ private:
 	// Stores the title of the game's window
 	char myWindowTitle[32];
 	// A shared pointer to our mesh
-	Mesh::Sptr myMesh;
+	Mesh::Sptr cubeMesh;
 	// A shared pointer to our shader
 	Shader::Sptr myShader;
 	//Ortho or perspective mode
@@ -39,7 +39,7 @@ private:
 	//wireframe mode
 	bool isWireframe = false;
 
-	float zoom = -3.0;
+	float zoom = 0;
 	//view and projection matrices
 	glm::mat4 view = glm::mat4(1.0f);
 	glm::mat4 projection = glm::mat4(1.0f);

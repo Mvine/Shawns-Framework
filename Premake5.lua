@@ -18,10 +18,10 @@ premake.info("Search DIR: " .. rootDir .. "\\projects\\*")
 local projects = os.matchdirs(rootDir .. "\\projects\\*")
 
 if (projects[#projects]) then
-	-- Select the last item in the project directory to be our startup project 
+	-- Select the last item in the project directory to be our startup project
 	-- (this is easily changed in VS, this is just to be handy)
 	startup = path.getbasename(projects[#projects])
-else 
+else
 	startup = ""
 end
 
@@ -48,7 +48,7 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 -- Include directories relative to root folder (solution directory)
 IncludeDir = {}
 IncludeDir["glfw"]    = "external/glfw3/include"
-IncludeDir["glad"]    = "external/glad/include" 
+IncludeDir["glad"]    = "external/glad/include"
 IncludeDir["ImGui"]   = "external/imgui"
 IncludeDir["glm"]     = "external/GLM/include"
 IncludeDir["stbs"]    = "external/stbs"
@@ -112,7 +112,7 @@ for k, proj in pairs(projects) do
 	  		"(IF NOT EXIST \"%{resdir}\" mkdir \"%{resdir}\")",
 	  		-- This step copies all the resources to the output directory
 	  		"(xcopy /Q /E /Y /I /C \"%{resdir}\" \"%{absdir}\")"
-		} 
+		}
 
 		-- Our source files are everything in the src folder
 		files {
@@ -130,8 +130,8 @@ for k, proj in pairs(projects) do
 			"%{prj.location}\\src",
 			"%{IncludeDir.entt}",
 			"%{IncludeDir.cereal}",
-			"%{IncludeDir.fmod}",	
-			"%{IncludeDir.spdlog}",		
+			"%{IncludeDir.fmod}",
+			"%{IncludeDir.spdlog}",
 			"%{IncludeDir.glfw}",
 			"%{IncludeDir.glad}",
 			"%{IncludeDir.ImGui}",
@@ -141,7 +141,7 @@ for k, proj in pairs(projects) do
 		}
 
 		-- These are what we are linking to (mostly other projects)
-		links { 
+		links {
 			"GLFW",
 			"Glad",
 			"stbs",
@@ -158,7 +158,8 @@ for k, proj in pairs(projects) do
 
 			-- Set some defines for the windows builds
 			defines {
-				"GLFW_INCLUDE_NONE", 
+                                "GLM_ENABLE_EXPIREMENTAL",
+				"GLFW_INCLUDE_NONE",
 				"WINDOWS"
 			}
 

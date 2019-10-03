@@ -184,11 +184,11 @@ bool Mesh::loadObj(const std::string& objPath)
 				&temp.vertices[0], &temp.uvs[0], &temp.normals[0], 
 				&temp.vertices[1], &temp.uvs[1], &temp.normals[1],
 				&temp.vertices[2], &temp.uvs[2], &temp.normals[2]);
-
+			 
 			//use matches to make sure our data is all loaded properly
 			if (matches != 9)
 				throw std::runtime_error("can't load face data");
-
+			 
 			//push back our loaded data
 			faceData.push_back(temp);
 		}
@@ -205,12 +205,12 @@ bool Mesh::loadObj(const std::string& objPath)
 			unPackedVertexData.push_back(vertexData[faceData[i].vertices[j] - 1].y);
 			unPackedVertexData.push_back(vertexData[faceData[i].vertices[j] - 1].z);
 
-			unPackedTextureData.push_back(uvData[faceData[i].uvs[j] - 1].x);
-			unPackedTextureData.push_back(uvData[faceData[i].uvs[j] - 1].y);
-
-			unPackedNormalData.push_back(normalData[faceData[i].normals[j] - 1].x);
-			unPackedNormalData.push_back(normalData[faceData[i].normals[j] - 1].y);
-			unPackedNormalData.push_back(normalData[faceData[i].normals[j] - 1].z);
+			unPackedVertexData.push_back(uvData[faceData[i].uvs[j] - 1].x);
+			unPackedVertexData.push_back(uvData[faceData[i].uvs[j] - 1].y);
+			
+			unPackedVertexData.push_back(normalData[faceData[i].normals[j] - 1].x);
+			unPackedVertexData.push_back(normalData[faceData[i].normals[j] - 1].y);
+			unPackedVertexData.push_back(normalData[faceData[i].normals[j] - 1].z);
 			
 		}
 	}
@@ -221,28 +221,23 @@ bool Mesh::loadObj(const std::string& objPath)
 	//Send data to openGl
 	glGenVertexArrays(1, &myVao);
 	
-	glGenBuffers(1, &vertexVBO);
-	glGenBuffers(1, &textureVBO);
-	glGenBuffers(1, &normalVBO);
-
 	glBindVertexArray(myVao);
-
-
+	glGenBuffers(1, &vertexVBO);
+	//glGenBuffers(1, &textureVBO);
+	//glGenBuffers(1, &normalVBO);
+	
 	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedVertexData.size(), &unPackedVertexData[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, false, sizeof(float) * 3, BUFFER_OFFSET(0));
-
-	glBindBuffer(GL_ARRAY_BUFFER, textureVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedTextureData.size(), &unPackedTextureData[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, false, sizeof(float) * 2, BUFFER_OFFSET(0));
-
-	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedNormalData.size(), &unPackedNormalData[0], GL_STATIC_DRAW);
-	glVertexAttribPointer((GLuint)2, 3, GL_FLOAT, false, sizeof(float) * 3, BUFFER_OFFSET(0));
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)* unPackedVertexData.size(), unPackedVertexData.data(), GL_STATIC_DRAW);
 
 	glEnableVertexAttribArray(0); //Vertex 
-	glEnableVertexAttribArray(1); //Uvs
-	glEnableVertexAttribArray(2); //Normals 
+	glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, false, sizeof(float) * 8, BUFFER_OFFSET(0));
+
+	glEnableVertexAttribArray(1);//Uvs
+	glVertexAttribPointer((GLuint)1, 2, GL_FLOAT, false, sizeof(float) * 8, BUFFER_OFFSET(12));
+	
+	glEnableVertexAttribArray(2);//Normals 
+	glVertexAttribPointer((GLuint)2, 3, GL_FLOAT, false, sizeof(float) * 8, BUFFER_OFFSET(20));
+
 
 	//cleanup
 	glBindBuffer(GL_ARRAY_BUFFER, 0);

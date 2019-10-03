@@ -1,10 +1,14 @@
 #version 410 core
 layout (location = 0) in vec3 inPosition;
-layout (location = 1) in vec4 inColor;
-layout (location = 0) out vec4 outColor;
+layout (location = 1) in vec4 inUv;
+layout (location = 2) in vec3 inNormal;
+
+uniform mat4 projection;
+uniform mat4 view;
+uniform mat4 model;
 
 void main() 
 {
-outColor = inColor;
-gl_Position = vec4(inPosition, 1);
+	gl_Position = projection * view * model * vec4(inPosition, 1);
+
 }
