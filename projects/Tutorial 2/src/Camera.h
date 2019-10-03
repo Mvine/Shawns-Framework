@@ -10,25 +10,23 @@ public:
 	Camera();
 	virtual ~Camera();
 
-	glm::mat4 Projection;
-	bool isOrtho = false; 
-
+	bool isOrtho = false;
+	
+	// View
 	const glm::mat4& GetView() const { return cameraView; }
-	// Gets the camera's view projection 
-	const glm::mat4& GetProjection() const { return Projection; }
-	//set projection matrix
-	void SetProjection(glm::mat4 other);
-	//set view matrix  
 	void SetView(glm::mat4 other);
-	
+	//Projection
+	glm::mat4 Projection;
+	const glm::mat4& GetProjection() const { return Projection; }
+	void SetProjection(glm::mat4 other);
+	//Position
 	const glm::vec3& GetPosition() const { return cameraPosition; }
-
-	
 	void SetPosition(const glm::vec3& pos);
+	
 	// Gets the front facing vector of this camera
-	inline glm::vec3 GetForward() const { return glm::vec3(-BackX, -BackY, -BackZ); }
+	inline glm::vec3 GetForward() const { return cameraFront; }
 	// Gets the up vector of this camera
-	inline glm::vec3 GetUp() const { return glm::vec3(UpX, UpY, UpZ); }
+	inline glm::vec3 GetUp() const { return cameraUp; }
 	// Gets the right hand vector of this camera
 	inline glm::vec3 GetRight() const { return glm::vec3(-LeftX, -LeftY, -LeftZ); }
 	// Get projection mode
@@ -40,6 +38,8 @@ public:
 	void Move(const glm::vec3& local);
 protected:
 	glm::vec3 cameraPosition;
+	glm::vec3 cameraFront = glm::vec3(-BackX, -BackY, -BackZ);
+	glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	// We are going to declare a union between multiple data members
 	// These will exist in the same spot in memory, but can be accessed

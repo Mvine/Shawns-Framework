@@ -221,10 +221,13 @@ void Game::Update(float deltaTime)
 		movement.x -= speed * deltaTime;
 	if (glfwGetKey(myWindow, GLFW_KEY_D) == GLFW_PRESS)
 		movement.x += speed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
+	if (glfwGetKey(myWindow, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		movement.y += speed * deltaTime;
 	if (glfwGetKey(myWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
 		movement.y -= speed * deltaTime;
+	
+	if (glfwGetKey(myWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
+		myCamera->isOrtho ^= 1;
 
 	if (glfwGetKey(myWindow, GLFW_KEY_Q) == GLFW_PRESS)
 		rotation.z -= rotSpeed * deltaTime;
@@ -253,7 +256,7 @@ void Game::Draw(float deltaTime)
 	cubeMesh->Draw();
 	//changing the matrix to draw it in a different place a second time
 	cubeMesh->model = glm::mat4(1.0f);
-	cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(10.0f, 0.0f, -2.0f));
+	cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(5.0f, 0.0f, -2.0f));
 	cubeMesh->model = glm::rotate(cubeMesh->model, glm::radians((float)glfwGetTime() * 20), glm::vec3(0.0f, 1.0f, 0.0f));
 	myShader->setMat4("model", cubeMesh->model);
 	cubeMesh->Draw();
