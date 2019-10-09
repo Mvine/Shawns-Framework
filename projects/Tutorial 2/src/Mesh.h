@@ -24,7 +24,7 @@ public:
 	void unloadObj();
 
 	unsigned int getNumFaces() const;
-	unsigned int getNumVertices() const;
+	unsigned int getNumVertices() const; 
 
 	//model matrix
 	glm::mat4 model = glm::mat4(1.0f);

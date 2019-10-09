@@ -51,7 +51,7 @@ void Shader::setInt(const std::string& name, const int& a_Int)
 {
 	glUniform1i(glGetUniformLocation(myShaderHandle, name.c_str()), a_Int);
 }
-
+ 
 void Shader::setBoolean(const std::string& name, const bool& a_bool) 
 {
 	glUniform1i(glGetUniformLocation(myShaderHandle, name.c_str()), a_bool);
@@ -144,7 +144,7 @@ void Shader::Compile(const char* vs_source, const char* fs_source) {
 	GLuint vs = __CompileShaderPart(vs_source, GL_VERTEX_SHADER);
 	GLuint fs = __CompileShaderPart(fs_source, GL_FRAGMENT_SHADER);
 	// Attach our two shaders
-	glAttachShader(myShaderHandle, vs);
+	glAttachShader(myShaderHandle, vs); 
 	glAttachShader(myShaderHandle, fs);
 	// Perform linking
 	glLinkProgram(myShaderHandle);
@@ -171,7 +171,7 @@ void Shader::Compile(const char* vs_source, const char* fs_source) {
 		glGetProgramiv(myShaderHandle, GL_INFO_LOG_LENGTH, &length);
 		if (length > 0) {
 			// Read the log from openGL
-			char* log = new char[length];
+			char* log = new char[length]; 
 			glGetProgramInfoLog(myShaderHandle, length, &length, log);
 			LOG_ERROR("Shader failed to link:\n{}", log);
 			delete[] log;

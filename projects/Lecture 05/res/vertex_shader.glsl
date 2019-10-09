@@ -32,6 +32,8 @@ void main()
 	LightDirection = lightPos + CamDirection;
 
 	//Normals
-	outNormal = (View * Model * vec4(inNormal, 1)).xyz;
+	outNormal = (View * Model * vec4(inNormal, 0)).xyz;
+
+	outColor = inColor;
 }
 	

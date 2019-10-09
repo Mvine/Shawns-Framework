@@ -211,7 +211,6 @@ bool Mesh::loadObj(const std::string& objPath)
 			unPackedVertexData.push_back(normalData[faceData[i].normals[j] - 1].x);
 			unPackedVertexData.push_back(normalData[faceData[i].normals[j] - 1].y);
 			unPackedVertexData.push_back(normalData[faceData[i].normals[j] - 1].z);
-			
 		}
 	}
 
