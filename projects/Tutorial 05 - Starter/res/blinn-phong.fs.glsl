@@ -14,12 +14,17 @@ uniform float a_AmbientPower;
 uniform vec3  a_LightPos;
 uniform vec3  a_LightColor;
 uniform float a_LightShininess;
+uniform float a_LightAttenuation;
 
 void main() {
     // Re-normalize our input, so that it is always length 1
     vec3 norm = normalize(inNormal);
     // Determine the direction from the position to the light
-    vec3 toLight = normalize(a_LightPos - inWorldPos);
+    vec3 toLight = a_LightPos - inWorldPos;
+    // Determine the distance to the light (used for attenuation later)
+    float distToLight = length(toLight);
+    // Normalize our toLight vector
+    toLight = normalize(toLight);
 
     // Determine the direction between the camera and the pixel
     vec3 viewDir = normalize(a_CameraPos - inWorldPos);
@@ -42,9 +47,15 @@ void main() {
 
     // Our ambient is simply the color times the ambient power
     vec3 ambientOut = a_AmbientColor * a_AmbientPower;
+
+    // We will use a modified form of distance squared attenuation, which will avoid divide
+    // by zero errors and allow us to control the light's attenuation via a uniform
+    float attenuation = 1.0 / (1.0 + a_LightAttenuation * pow(distToLight, 2));
     
     // Our result is our lighting multiplied by our object's color
-    vec3 result = (ambientOut + diffuseOut + specOut) * inColor.xyz;
+    vec3 result = (ambientOut + attenuation * (diffuseOut + specOut)) * inColor.xyz;
+
+    // TODO: gamma correction
 
     // Write the output
 	outColor = vec4(result, inColor.a);// * a_ColorMultiplier;
