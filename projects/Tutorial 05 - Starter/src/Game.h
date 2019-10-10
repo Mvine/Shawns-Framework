@@ -19,6 +19,7 @@ public:
 	~Game();
 
 	void Run();
+	void Resize(int newWidth, int newHeight);
 
 protected:
 	void Initialize();
@@ -36,6 +37,7 @@ protected:
 	void Update(float deltaTime);
 	void Draw(float deltaTime);
 	void DrawGui(float deltaTime);
+
 
 private:
 	// Stores the main window that the game is running in

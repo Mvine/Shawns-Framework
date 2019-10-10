@@ -36,6 +36,10 @@ void GlDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
+	Game* game = (Game*)glfwGetWindowUserPointer(window);
+	if (game) {
+		game->Resize(width, height);
+	}
 }
 
 Game::Game() :
@@ -349,4 +353,9 @@ void Game::DrawGui(float deltaTime) {
 		}
 	}
 	ImGui::End();
+}
+
+void Game::Resize(int newWidth, int newHeight)
+{
+	myCamera->Projection = glm::perspective(glm::radians(60.0f), newWidth / (float)newHeight, 0.01f, 1000.0f);
 }
