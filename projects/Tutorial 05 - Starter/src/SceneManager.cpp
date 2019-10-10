@@ -3,10 +3,6 @@
 Scene* SceneManager::_CurrentScene = nullptr;
 std::unordered_map<std::string, Scene*> SceneManager::_KnownScenes;
 entt::registry SceneManager::Prefabs;
-Scene* SceneManager::Current()
-{
-	return nullptr;
-}
 
 Scene* SceneManager::Current() {
 	return _CurrentScene;

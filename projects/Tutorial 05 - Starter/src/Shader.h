@@ -6,8 +6,6 @@
 
 class Shader {
 public:
-	
-	typedef std::shared_ptr<Shader> Sptr;
 	Shader();
 	~Shader();
 
@@ -31,3 +29,4 @@ private:
 	GLuint myShaderHandle;
 };
 
+typedef std::shared_ptr<Shader> Shader_sptr;

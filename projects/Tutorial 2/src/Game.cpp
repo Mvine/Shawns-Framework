@@ -67,7 +67,7 @@ void Game::LoadContent()
 	myCamera->LookAt(glm::vec3(0));
 	// Create a new mesh from the data
 
-	cubeMesh = std::make_shared<Mesh>("suzzane.obj");
+	cubeMesh = std::make_shared<Mesh>("Garbage can cannon test.obj");
 }
 
 void Game::UnloadContent()

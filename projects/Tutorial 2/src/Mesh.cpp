@@ -126,6 +126,10 @@ bool Mesh::loadObj(const std::string& objPath)
 		{
 			continue;
 		}
+		if(std::strstr(inputString,"o") != nullptr)
+		{
+			continue;
+		}
 		
 		/////////////////////Normal Data////////////////////////
 		else if (std::strstr(inputString, "vn") != nullptr)
