@@ -195,14 +195,14 @@ int main() {
 	GLuint ModelID = glGetUniformLocation(shader_program, "Model");
 	GLuint LightPosID = glGetUniformLocation(shader_program, "LightWorldPos");
 
-
+   
 	// Face culling
 	//glEnable(GL_CULL_FACE);
 	//glFrontFace(GL_CW); 
 	//glCullFace(GL_FRONT); //GL_BACK, GL_FRONT_AND_BACK
 
 
-	///// Game loop ///// 
+	///// Game loop /////  
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		 

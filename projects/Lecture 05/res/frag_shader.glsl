@@ -9,43 +9,39 @@ in vec3 LightDirection;
 
 uniform vec3 LightWorldPos;
 
-layout(location = 1) out vec4 frag_color;
+out vec4 frag_color;
 
-void main() 
+void main()
 {
-	vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);//Better off in c++ so it can be changed accordingly
-	float lightIntensity = 5.0f; //Better off in c++ so it can be changed accordingly
+	vec3 lightColor      = vec3(1.0f, 1.0f, 1.0f);
+	float lightIntensity = 5.0f;
 
-	vec3 diffuseColor = inColor;
-	vec3 ambientColor = vec3(0.0f, 0.0f, 0.0f);
-	vec3 specularColor = vec3(0.5f, 0.5f, 0.5f);
+	vec3 diffuse  = inColor;
+	vec3 ambient  = vec3(0.2f, 0.7f, 0.2f);
+	vec3 specular = vec3(0.5f, 0.5f, 0.5f);
 
-	//Normal
-	vec3 n = normalize(inNormal);
-	//Light Direction
-	vec3 l = normalize(LightDirection);
-	//Camera Direction
-	vec3 e = normalize(CamDirection);
-	//Halfway Vector
-	vec3 h = normalize(l + e);
-	//Specular intensity
-	float spec = pow(max(dot(n,h), 0.0f), 256);
+	vec3 normalDir  = normalize(inNormal);
+	vec3 lightDir   = normalize(LightDirection);
+	vec3 camDir     = normalize(CamDirection);
+	vec3 halfwayDir = normalize(lightDir + camDir);
 
-	//Specular component
-	vec3 specOut = spec * specularColor;
+	//specular intensity
+	float specIntensity = pow(max(dot(normalDir, halfwayDir), 0.0f), 256.0f);
 
-	//distance for attenuating
-	float dist = length(LightWorldPos - inWorldPos);
+	//specular component
+	vec3 specularOut = specIntensity * specular;
 
-	//Diffuse component
-	float diffuseComponent = max(dot(n,l), 0.0f);
-	vec3 diffuseOut = (diffuseComponent * diffuseColor) / (dist * dist);
+	float distance = length(LightWorldPos - inWorldPos);
 
-	//Ambient component
-	vec3 ambientOut = ambientColor * 0.0f; //Better off in c++ so it can be changed accordingly
+	//diffuse component
+	float diffuseComponent = max(dot(normalDir, lightDir), 1.0f);
 
-	//Result
-	vec3 result = (ambientOut + diffuseOut + specOut) * lightIntensity;
+	vec3 diffuseOut = (diffuseComponent * diffuse) / (distance * distance);
 
-	frag_color = vec4(inColor, 1.0f);
+	//ambient component
+	vec3 ambientOut = ambient * 1.0f;
+
+	vec3 result = (ambientOut + diffuseOut + specularOut) * lightIntensity * inColor;
+
+	frag_color = vec4(result, 1.0f);
 }
