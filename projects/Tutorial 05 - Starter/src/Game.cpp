@@ -1,7 +1,10 @@
 #include "Game.h"
 #include "Logging.h"
+#include "SceneManager.h"
+#include "MeshRenderer.h"
 
 #include <stdexcept>
+#include <functional>
 
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 #include "imgui.h"
@@ -41,6 +44,25 @@ void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
 		game->Resize(width, height);
 	}
 }
+
+struct UpdateBehaviour {
+	std::function<void(entt::entity e, float dt)> Function;
+};
+
+
+struct TempTransform {
+	glm::vec3 Position;
+	glm::vec3 EulerRotation;
+	glm::vec3 Scale;
+
+	glm::mat4 GetWorldTransform() const {
+		return
+			glm::translate(glm::mat4(1.0f), Position) *
+			glm::mat4_cast(glm::quat(glm::radians(EulerRotation))) *
+			glm::scale(glm::mat4(1.0f), Scale)
+			;
+	}
+};
 
 Game::Game() :
 	myWindow(nullptr),
@@ -144,11 +166,11 @@ void Game::LoadContent() {
 	// Create our 4 vertices
 	Vertex vertices[4] = {
 		//       Position                   Color
-		//    x      y     z         r    g     b     a
-		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }},
-		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }},
-		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }},
-		{{  0.5f,  0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }},
+		//    x      y     z         r    g     b     a			x     y     z
+		{{ -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f }, {0.0f, 0.0f, 1.0f}},
+		{{  0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 0.0f, 1.0f }, {0.0f, 0.0f, 1.0f}},
+		{{ -0.5f,  0.5f, 0.0f }, { 1.0f, 0.0f, 1.0f, 1.0f }, {0.0f, 0.0f, 1.0f}},
+		{{  0.5f,  0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f }, {0.0f, 0.0f, 1.0f}},
 	};
 
 	// Create our 6 indices
@@ -166,6 +188,31 @@ void Game::LoadContent() {
 
 	myNormalShader = std::make_shared<Shader>();
 	myNormalShader->Load("passthrough.vs", "normalView.fs");
+
+	Shader_sptr phong = std::make_shared<Shader>();
+	phong->Load("passthrough.vs", "phong.fs.glsl");
+	Material_sptr testMat = std::make_shared<Material>(phong);
+	testMat->Set("a_LightPos", { 0, 0, 1 });
+	testMat->Set("a_LightColor", { 1.0f, 1.0f, 0 });
+	testMat->Set("a_AmbientColor", { 1.0f, 1.0f, 1.0f });
+	testMat->Set("a_AmbientPower", 0.1f);
+	testMat->Set("a_LightSpecPower", 0.5f);
+	testMat->Set("a_LightShininess", 256);
+	testMat->Set("a_LightAttenuation", 1.0f);
+
+	SceneManager::RegisterScene("Test");
+	SceneManager::RegisterScene("Test2");
+	SceneManager::SetCurrentScene("Test");
+	
+	{
+		auto& ecs = GetRegistry("Test");
+
+		entt::entity e1 = ecs.create();
+		MeshRenderer& m1 = ecs.assign<MeshRenderer>(e1);
+		m1.Material = testMat;
+		m1.Mesh = myMesh;
+	}
+	
 }
 
 
@@ -288,9 +335,68 @@ void Game::Draw(float deltaTime) {
 
 	//myScene.Render(deltaTime);
 
-	myShader->Bind();
-	myShader->SetUniform("a_ModelViewProjection", myCamera->GetViewProjection() * myModelTransform);
-	myMesh->Draw();	
+	 // We'll grab a reference to the ecs to make things easier
+	auto& ecs = CurrentRegistry();
+
+	// We sort our mesh renderers based on material properties
+	// This will group all of our meshes based on shader first, then material second
+	ecs.sort<MeshRenderer>([](const MeshRenderer& lhs, const MeshRenderer& rhs) {
+		if (rhs.Material == nullptr || rhs.Mesh == nullptr)
+			return false;
+		else if (lhs.Material == nullptr || lhs.Mesh == nullptr)
+			return true;
+		else if (lhs.Material->GetShader() != rhs.Material->GetShader())
+			return lhs.Material->GetShader() < rhs.Material->GetShader();
+		else
+			return lhs.Material < rhs.Material;
+		});
+
+	// These will keep track of the current shader and material that we have bound
+	Material_sptr mat = nullptr;
+	Shader_sptr boundShader = nullptr;
+
+	// A view will let us iterate over all of our entities that have the given component types
+	auto view = ecs.view<MeshRenderer>();
+
+	for (const auto& entity : view) {
+		// Get our shader
+		const MeshRenderer& renderer = ecs.get<MeshRenderer>(entity);
+
+		// Early bail if mesh is invalid
+		if (renderer.Mesh == nullptr || renderer.Material == nullptr)
+			continue;
+		// If our shader has changed, we need to bind it and update our frame-level uniforms
+		if (renderer.Material->GetShader() != boundShader) {
+			boundShader = renderer.Material->GetShader();
+			boundShader->Bind();
+			boundShader->SetUniform("a_CameraPos", myCamera->GetPosition());
+		}
+		// If our material has changed, we need to apply it to the shader
+		if (renderer.Material != mat) {
+			mat = renderer.Material;
+			mat->Apply();
+		}
+		// We'll need some info about the entities position in the world
+		const TempTransform& transform = ecs.get_or_assign<TempTransform>(entity);
+		
+		// Our normal matrix is the inverse-transpose of our object's world rotation
+		glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(transform.GetWorldTransform())));
+
+		// Update the MVP using the item's transform
+		mat->GetShader()->SetUniform(
+			"a_ModelViewProjection",
+			myCamera->GetViewProjection() *
+			transform.GetWorldTransform());
+
+		// Update the model matrix to the item's world transform
+		mat->GetShader()->SetUniform("a_Model", transform.GetWorldTransform());
+
+		// Update the model matrix to the item's world transform
+		mat->GetShader()->SetUniform("a_NormalMatrix", normalMatrix);
+		// Draw the item
+		renderer.Mesh->Draw();
+		
+	}
 }
 
 void Game::DrawGui(float deltaTime) {
@@ -312,6 +418,13 @@ void Game::DrawGui(float deltaTime) {
 	// Draw a formatted text line
 	ImGui::Text("Time: %f", glfwGetTime());
 
+	auto it = SceneManager::Each();
+	for (auto& kvp : it) {
+		if (ImGui::Button(kvp.first.c_str())) {
+			SceneManager::SetCurrentScene(kvp.first);
+		}
+	}
+	
 	// Start a new ImGui header for our camera settings
 	if (ImGui::CollapsingHeader("Camera Settings")) {
 		// Draw our camera's normal
