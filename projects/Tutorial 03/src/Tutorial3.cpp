@@ -118,6 +118,8 @@ void GUI()
 	ImGui::Text("Object Position: ");
 	ImGui::Text("%f\t%f", activeObject->getPosition().x, activeObject->getPosition().y);
 
+	ImGui::Checkbox("Forwards", &path.forwards);
+
 	/*
 		Our camera sees everything from the origin point to windowWidth, windowHeight
 		With an orthographic camera viewing the scene straight on, it's possible
@@ -167,9 +169,6 @@ void Update()
 	activeObject->setScale(lerp(35.f, 65.f, path.t));
 	activeObject->setPosition(path.position);
 
-	// TODO: Set the red & green color of the object based on the position of the mouse
-	// HINT: using inverseLerp(float, float, float) is essential for these
-	// ANOTHER HINT: the position of the mouse will be between 0,0 and the window width/height
 	activeObject->color.r = inverseLerp(mousePos.x, 0, windowWidth); // Plug in the correct parameters into the function
 	activeObject->color.g = inverseLerp(mousePos.y, 0, windowHeight);
 	activeObject->color.b = path.t;
@@ -201,7 +200,21 @@ void KeyboardCallbackFunction(GLFWwindow* window, int key, int scancode, int act
 	//	camera.moveDown();
 	//if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
 	//	camera.moveUp();
+	if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) //the C key for catmull rom curve
+	{
+		path.catmulling = true;
+		path.lerping = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) //the L key for lerping
+	{
+		path.catmulling = false;
+		path.lerping = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) //P key for creating a new path
+	{
 
+	}
+	
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		isRunning = false;
 }
