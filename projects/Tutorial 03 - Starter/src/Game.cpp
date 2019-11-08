@@ -140,7 +140,7 @@ void Game::LoadContent() {
 	};
 
 	// Create a new mesh from the data
-	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
+	myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6); 
 	
 	// Create and compile shader
 	myShader = std::make_shared<Shader>();

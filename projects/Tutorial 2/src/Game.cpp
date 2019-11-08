@@ -265,7 +265,7 @@ void Game::Draw(float deltaTime)
 void Game::DrawGui(float deltaTime)
 {
 	// Open a new ImGui window
-	ImGui::Begin("Test");
+	ImGui::Begin("Test"); 
 	// Draw widgets here
 	ImGui::End();
 	// Draw a color editor
