@@ -9,21 +9,12 @@
 -- Determine the root directory where we are calling premake from (this is our working directory)
 local rootDir = path.getabsolute(_WORKING_DIR)
 
--- Log what the startup project will be
-premake.info("Working DIR: " .. _WORKING_DIR)
-
-premake.info("Search DIR: " .. rootDir .. "\\projects\\*")
-
 -- Get all the directories in our projects directory
-local projects = os.matchdirs(rootDir .. "\\projects\\*")
+local projects = os.matchdirs(rootDir .. "/projects/*")
 
-if (projects[#projects]) then
-	-- Select the last item in the project directory to be our startup project
-	-- (this is easily changed in VS, this is just to be handy)
-	startup = path.getbasename(projects[#projects])
-else
-	startup = ""
-end
+-- Select the last item in the project directory to be our startup project 
+-- (this is easily changed in VS, this is just to be handy)
+startup = path.getbasename(projects[#projects])
 
 -- Log what the startup project will be
 premake.info("Startup project: " .. startup)
@@ -56,8 +47,10 @@ IncludeDir["fmod"]    = "external/fmod"
 IncludeDir["spdlog"]  = "external/spdlog"
 IncludeDir["toolkit"] = "external/toolkit"
 IncludeDir["entt"]    = "external/entt"
-IncludeDir["cereal"]    = "external/cereal"
+IncludeDir["cereal"]  = "external/cereal"
+IncludeDir["gzip"]    = "external/gzip"
 
+group("Externals")
 -- These are other projects that we want to include in our solution (each needs their own premake)
 include "external/glfw3"
 include "external/glad"
@@ -65,6 +58,7 @@ include "external/imgui"
 include "external/stbs"
 include "external/Toolkit"
 
+group("")
 -- Iterate over all the projects (k is the index)
 for k, proj in pairs(projects) do
 
@@ -128,7 +122,7 @@ for k, proj in pairs(projects) do
 		-- Defines what directories we want to include
 		includedirs {
 			"%{prj.location}\\src",
-			"%{IncludeDir.entt}",
+			"%{IncludeDir.entt}",	
 			"%{IncludeDir.cereal}",
 			"%{IncludeDir.fmod}",
 			"%{IncludeDir.spdlog}",
@@ -137,7 +131,8 @@ for k, proj in pairs(projects) do
 			"%{IncludeDir.ImGui}",
 			"%{IncludeDir.glm}",
 			"%{IncludeDir.stbs}",
-			"%{IncludeDir.toolkit}"
+			"%{IncludeDir.toolkit}",
+			"%{IncludeDir.gzip}"
 		}
 
 		-- These are what we are linking to (mostly other projects)
@@ -149,7 +144,8 @@ for k, proj in pairs(projects) do
 			"Toolkit",
 			"opengl32.lib",
 			"imagehlp.lib",
-			"external/fmod/fmod64.lib"
+			"external/fmod/fmod64.lib",
+			"external/gzip/zlib.lib"
 		}
 
 		-- This filters for our windows builds
