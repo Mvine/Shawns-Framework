@@ -11,6 +11,7 @@ layout (location = 1) out vec3 outNormal;
 layout (location = 2) out vec3 outWorldPos;
 // New in tutorial 06
 layout (location = 3) out vec2 outUV;
+layout (location = 4) out vec3 outTexWeights;
 
 uniform mat4 a_ModelViewProjection;
 uniform mat4 a_Model;
@@ -23,6 +24,12 @@ void main() {
 	outColor = inColor;
 	outWorldPos =  (a_Model * vec4(inPosition, 1)).xyz;
 	gl_Position = a_ModelViewProjection * vec4(inPosition, 1);
+
+	outTexWeights = vec3(
+ sin(inPosition.x / 2.0f) / 2 + 0.5,
+ cos(inPosition.x * 3.7f) / 2 + 0.5,
+ sin(inPosition.y) / 2 + 0.5
+ );
 
 	// New in tutorial 06
 	outUV = inUV;

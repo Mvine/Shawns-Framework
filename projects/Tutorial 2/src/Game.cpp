@@ -185,13 +185,17 @@ void Game::Run()
 		//model translation
 		cubeMesh->model = glm::translate(cubeMesh->model, glm::vec3(-5.0f, 0.0f, -2.0f));
 		cubeMesh->model = glm::rotate(cubeMesh->model,glm::radians(thisFrame * 20), glm::vec3(0.0f, 1.0f, 0.0f));
-		
-		
-		//set projection matrix
+		 
+		 
+		//set projection matrix 
 		myShader->Use();
 		myShader->setMat4("model", cubeMesh->model);
-		myShader->setMat4("view", myCamera->GetView());
+		myShader->setMat4("view", myCamera->GetView()); 
 		myShader->setMat4("projection", myCamera->GetProjection());
+
+		//set view direction for outline 
+		
+		myShader->setVec3("viewDirection", myCamera->GetForward());  
 		
 		//other updates
 		ImGuiNewFrame();

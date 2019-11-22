@@ -6,6 +6,7 @@ layout(location = 2) in vec3 inWorldPos;
 
 // New in tutorial 06
 layout(location = 3) in vec2 inUV;
+layout(location = 4) in vec3 inTexWeights;
 
 layout(location = 0) out vec4 outColor;
 
@@ -15,7 +16,7 @@ uniform vec3  a_AmbientColor;
 uniform float a_AmbientPower;
 
 // New in tutorial 06
-uniform sampler2D s_Albedo;
+uniform sampler2D s_Albedos[3];
 
 uniform vec3  a_LightPos;
 uniform vec3  a_LightColor;
@@ -59,7 +60,14 @@ void main() {
 	float attenuation = 1.0 / (1.0 + a_LightAttenuation * pow(distToLight, 2));
 
 	// Below is modified for tutorial 06
-	vec4 albedo = texture(s_Albedo, inUV);
+	float totalWeight = dot(inTexWeights, vec3(1, 1, 1));
+	vec3 weights = inTexWeights / totalWeight;
+	// Below is modified for tutorial 10
+	// Previously was: vec4 albedo = texture(s_Albedo, inUV);
+	vec4 albedo =
+	 texture(s_Albedos[0], inUV) * weights.x +
+	 texture(s_Albedos[1], inUV) * weights.y +
+	 texture(s_Albedos[2], inUV) * weights.z;
 
 	// Our result is our lighting multiplied by our object's color
 	vec3 result = (ambientOut + attenuation * (diffuseOut + specOut)) * albedo.xyz * inColor.xyz;

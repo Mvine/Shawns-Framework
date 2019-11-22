@@ -7,7 +7,7 @@ uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
-layout(location = 0) out vec3 outNormals;
+layout(location = 0) out vec3 outNormals; 
 
 void main() 
 {

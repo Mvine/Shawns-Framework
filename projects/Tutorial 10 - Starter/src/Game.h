@@ -39,6 +39,9 @@ protected:
 	void Draw(float deltaTime);
 	void DrawGui(float deltaTime);
 
+	glm::ivec2 myWindowSize;
+	void _RenderScene(glm::ivec4 viewport, Camera::Sptr camera);
+
 private:
 	// Stores the main window that the game is running in
 	GLFWwindow* myWindow;
