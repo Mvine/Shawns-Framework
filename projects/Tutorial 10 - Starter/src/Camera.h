@@ -9,6 +9,14 @@
 
 class Camera {
 public:
+
+	enum DrawMode
+	{
+		wireframe,
+		point,
+		fill
+	};
+
 	typedef std::shared_ptr<Camera> Sptr;
 	
 	Camera();
@@ -48,6 +56,9 @@ public:
 
 	std::optional<glm::vec3> GetPinnedUp() const { return myPinnedUp; }
 	void SetPinnedUp(const std::optional<glm::vec3>& value) { myPinnedUp = value; }
+
+	// Draw mode
+	DrawMode drawMode = fill;
 
 protected:
 	// An optional member for camera pinning

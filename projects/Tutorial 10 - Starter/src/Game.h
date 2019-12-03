@@ -51,6 +51,10 @@ private:
 	char        myWindowTitle[32];
 
 	Camera::Sptr myCamera;
+	Camera::Sptr Camera2;
+	Camera::Sptr Camera3;
+	Camera::Sptr Camera4;
+	Camera::Sptr activeCamera;
 
 	// Our models transformation matrix
 	glm::mat4   myModelTransform;

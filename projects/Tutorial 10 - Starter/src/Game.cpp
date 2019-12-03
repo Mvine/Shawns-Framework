@@ -49,6 +49,9 @@ void GlDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 	}
 }
 
+//Mouse Callback Prototype
+void mouseClickCallback(GLFWwindow* window, int button, int action, int mods);
+
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 	Game* game = (Game*)glfwGetWindowUserPointer(window);
@@ -62,12 +65,13 @@ void Game::Resize(int newWidth, int newHeight) {
 	myWindowSize = { newWidth, newHeight };
 }
 
+
 Game::Game() :
 	myWindow(nullptr),
 	myWindowTitle("Game"),
-	myClearColor(glm::vec4(0, 0, 0, 1)),
+	myClearColor(glm::vec4(0.3, 0.3, 0.3, 1)),
 	myModelTransform(glm::mat4(1)),
-	myWindowSize(600,600)
+	myWindowSize(800, 800)
 { }
 
 Game::~Game() { }
@@ -80,7 +84,7 @@ void Game::Run()
 	LoadContent();
 
 	static float prevFrame = glfwGetTime();
-	
+
 	// Run as long as the window is open
 	while (!glfwWindowShouldClose(myWindow)) {
 		// Poll for events from windows (clicks, keypressed, closing, all that)
@@ -117,7 +121,7 @@ void Game::Initialize() {
 		std::cout << "Failed to initialize GLFW" << std::endl;
 		throw std::runtime_error("Failed to initialize GLFW");
 	}
-	
+
 	// Enable transparent backbuffers for our windows (note that Windows expects our colors to be pre-multiplied with alpha)
 	glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, true);
 
@@ -246,10 +250,39 @@ glm::vec4 testColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
 
 void Game::LoadContent() {
+
+	//Active camera for viewport selection, while leaving the original camera where it was
+	activeCamera = std::make_shared<Camera>();
+	activeCamera->SetPosition(glm::vec3(5, 5, 5));
+	activeCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
+	activeCamera->Projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.01f, 1000.0f);
+
+	//Bottom Left (Ortho Left)
 	myCamera = std::make_shared<Camera>();
-	myCamera->SetPosition(glm::vec3(5, 5, 5));
+	myCamera->SetPosition(glm::vec3(0, -15, -0.5));
 	myCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
-	myCamera->Projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.01f, 1000.0f);
+	myCamera->drawMode = Camera::wireframe;
+	myCamera->Projection = glm::ortho(0, 1, 1, 0, 0, 100);
+
+	//Top Left (Ortho Top)
+	Camera2 = std::make_shared<Camera>();
+	Camera2->SetPosition(glm::vec3(0, 0.0000001, 15)); //for some reason if the camera's normal becomes (0,0,-1) it draws black
+	Camera2->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
+	Camera2->drawMode = Camera::wireframe;
+	Camera2->Projection = glm::ortho(0, 1, 1, 0, 0, 100);
+
+	//Bottom Right (Perspective)
+	Camera3 = std::make_shared<Camera>();
+	Camera3->SetPosition(glm::vec3(-10, 16, 13));
+	Camera3->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
+	Camera3->Projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.01f, 1000.0f);
+
+	//Top Right (Ortho Front)
+	Camera4 = std::make_shared<Camera>();
+	Camera4->SetPosition(glm::vec3(15, 0, 0));
+	Camera4->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
+	Camera4->drawMode = Camera::wireframe;
+	Camera4->Projection = glm::ortho(0, 1, 1, 0, 0, 100);
 
 	// Create our 4 vertices
 	Vertex vertices[4] = {
@@ -265,15 +298,15 @@ void Game::LoadContent() {
 	uint32_t indices[6] = {
 		0, 1, 2,
 		2, 1, 3
-	}; 
+	};
 
 	// Create a new mesh from the data
 	Mesh::Sptr myMesh = std::make_shared<Mesh>(vertices, 4, indices, 6);
 
-	Mesh::Sptr monkey = ObjLoader::LoadObjToMesh("monkey.obj");
+	//Mesh::Sptr monkey = ObjLoader::LoadObjToMesh("monkey.obj");
 
 	Shader::Sptr phong = std::make_shared<Shader>();
-	phong->Load("lighting.vs.glsl", "textured-blinn-phong.fs.glsl");   
+	phong->Load("lighting.vs.glsl", "textured-blinn-phong.fs.glsl");
 
 	Texture2D::Sptr albedo = Texture2D::LoadFromFile("color-grid.png");
 
@@ -296,17 +329,17 @@ void Game::LoadContent() {
 	testMat->Set("s_Albedos[1]", Texture2D::LoadFromFile("moss.jpg"), Linear);
 	testMat->Set("s_Albedos[2]", Texture2D::LoadFromFile("brick.jpg"), Linear);
 
-		
+
 	SceneManager::RegisterScene("Test");
 	SceneManager::RegisterScene("Test2");
 	SceneManager::SetCurrentScene("Test");
 
 	auto scene = CurrentScene();
-	
+
 	scene->SkyboxShader = std::make_shared<Shader>();
 	scene->SkyboxShader->Load("cubemap.vs.glsl", "cubemap.fs.glsl");
 	scene->SkyboxMesh = MakeInvertedCube();
-	
+
 	std::string files[6] = {
 		std::string("cubemap/graycloud_lf.jpg"),
 		std::string("cubemap/graycloud_rt.jpg"),
@@ -318,20 +351,12 @@ void Game::LoadContent() {
 	scene->Skybox = TextureCube::LoadFromFiles(files);
 
 	{ // Push a new scope so that we don't step on other names
-		Shader::Sptr MountainShader = std::make_shared<Shader>();
-		MountainShader->Load("passthrough.vs.glsl", "passthrough.fs.glsl");
-		Material::Sptr testMat = std::make_shared<Material>(MountainShader);
-		testMat->Set("a_EnabledWaves", 3);
-		testMat->Set("a_Gravity", 9.81f);
+		Shader::Sptr mountainShader = std::make_shared<Shader>();
+		mountainShader->Load("mountainVertex.vs.glsl", "mountainFragment.fs.glsl");
+		Material::Sptr testMat = std::make_shared<Material>(mountainShader);
+
 		// Format is: [xDir, yDir, "steepness", wavelength] (note that the sum of steepness should be < 1 to avoid loops)
-		testMat->Set("a_Waves[0]", { 1.0f, 0.0f, 0.50f, 6.0f });
-		testMat->Set("a_Waves[1]", { 0.0f, 1.0f, 0.25f, 3.1f });
-		testMat->Set("a_Waves[2]", { 1.0f, 1.4f, 0.20f, 1.8f });
-		testMat->Set("a_WaterAlpha", 0.75f);
-		testMat->Set("a_WaterColor", { 0.8f, 1.0f, 0.95f });
-		testMat->Set("a_WaterClarity", 0.9f);
-		testMat->Set("a_FresnelPower", 0.5f);
-		testMat->Set("a_RefractionIndex", 1.0f / 1.34f);
+
 		testMat->Set("s_Environment", scene->Skybox);
 		testMat->HasTransparency = true;
 		auto& ecs = GetRegistry("Test"); // If you've changed the name of the scene, you'll need to modify this!
@@ -348,15 +373,15 @@ void Game::LoadContent() {
 		testMat->Set("a_EnabledWaves", 3);
 		testMat->Set("a_Gravity", 9.81f);
 		// Format is: [xDir, yDir, "steepness", wavelength] (note that the sum of steepness should be < 1 to avoid loops)
-		testMat->Set("a_Waves[0]", { 1.0f, 0.0f, 0.50f, 6.0f });
-		testMat->Set("a_Waves[1]", { 0.0f, 1.0f, 0.25f, 3.1f });
-		testMat->Set("a_Waves[2]", { 1.0f, 1.4f, 0.20f, 1.8f });
+		testMat->Set("a_Waves[0]", { 0.1f, 0.0f, 0.20f, 6.0f });
+		testMat->Set("a_Waves[1]", { 0.0f, 0.1f, 0.15f, 3.1f });
+		testMat->Set("a_Waves[2]", { 0.1f, 1.4f, 0.10f, 1.8f });
 		testMat->Set("a_WaterAlpha", 0.75f);
 		testMat->Set("a_WaterColor", { 0.8f, 1.0f, 0.95f });
 		testMat->Set("a_WaterClarity", 0.9f);
 		testMat->Set("a_FresnelPower", 0.5f);
 		testMat->Set("a_RefractionIndex", 1.0f / 1.34f);
-		testMat->Set("s_Environment", scene->Skybox);	
+		testMat->Set("s_Environment", scene->Skybox);
 		testMat->HasTransparency = true;
 		auto& ecs = GetRegistry("Test"); // If you've changed the name of the scene, you'll need to modify this!
 		entt::entity e1 = ecs.create();
@@ -445,6 +470,8 @@ void Game::Update(float deltaTime) {
 	float speed = 1.0f;
 	float rotSpeed = 1.0f;
 
+	double mousePosX, mousePosY;
+
 	if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
 		movement.z -= speed * deltaTime;
 	if (glfwGetKey(myWindow, GLFW_KEY_S) == GLFW_PRESS)
@@ -470,10 +497,20 @@ void Game::Update(float deltaTime) {
 		rotation.y -= rotSpeed * deltaTime;
 	if (glfwGetKey(myWindow, GLFW_KEY_RIGHT) == GLFW_PRESS)
 		rotation.y += rotSpeed * deltaTime;
-	   	
+
 	// Rotate and move our camera based on input
 	myCamera->Rotate(rotation);
 	myCamera->Move(movement);
+
+
+
+	//TODO: Mouse stuff for window selection
+	glfwGetCursorPos(myWindow, &mousePosX, &mousePosY);
+
+	LOG_INFO(std::to_string(mousePosX));
+	LOG_INFO(std::to_string(mousePosY));
+
+	glfwSetMouseButtonCallback(myWindow, mouseClickCallback);
 	
 	// Rotate our transformation matrix a little bit each frame
 	myModelTransform = glm::rotate(myModelTransform, deltaTime, glm::vec3(0, 0, 1));
@@ -491,7 +528,7 @@ void Game::Draw(float deltaTime) {
 
 	glm::ivec4 viewport = {
 	0,0,
-	myWindowSize.x / 2, myWindowSize.y/2};
+	myWindowSize.x / 2, myWindowSize.y / 2 };
 
 	glm::ivec4 viewport2 = {
 	0,myWindowSize.y / 2,
@@ -504,11 +541,11 @@ void Game::Draw(float deltaTime) {
 	glm::ivec4 viewport4 = {
 	myWindowSize.x / 2 , myWindowSize.y / 2,
 	myWindowSize.x / 2, myWindowSize.y / 2 };
-	
+
 	_RenderScene(viewport, myCamera);
-	_RenderScene(viewport2, myCamera);
-	_RenderScene(viewport3, myCamera);
-	_RenderScene(viewport4, myCamera);
+	_RenderScene(viewport2, Camera2);
+	_RenderScene(viewport3, Camera3);
+	_RenderScene(viewport4, Camera4);
 }
 
 void Game::DrawGui(float deltaTime) {
@@ -530,7 +567,7 @@ void Game::DrawGui(float deltaTime) {
 			SceneManager::SetCurrentScene(kvp.first);
 		}
 	}
-	
+
 	ImGui::End();
 
 	// Open a second ImGui window
@@ -551,11 +588,11 @@ void Game::DrawGui(float deltaTime) {
 			myCamera->SetPosition(position);
 		}
 		if (ImGui::Button("Look at center")) {
-			myCamera->LookAt(glm::vec3(0), glm::vec3(0,0,1));
+			myCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 		}
-	    // Get the camera pinning value
+		// Get the camera pinning value
 		static glm::vec3 camPin;
-		 
+
 		// Get whether or not camera pinning is enabled
 		bool camPlaneEnabled = myCamera->GetPinnedUp().has_value();
 		// Draw a checkbox for camera pinning
@@ -581,7 +618,7 @@ void Game::DrawGui(float deltaTime) {
 	ImGui::End();
 }
 
-void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera){
+void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera) {
 	glViewport(viewport.x, viewport.y, viewport.z, viewport.w);
 	glScissor(viewport.x, viewport.y, viewport.z, viewport.w);
 
@@ -594,6 +631,18 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera){
 	glViewport(viewport.x + border, viewport.y + border, viewport.z - 2 * border, viewport.w - 2 * border);
 	glScissor(viewport.x + border, viewport.y + border, viewport.z - 2 * border, viewport.w - 2 * border);
 
+	switch(camera->drawMode)
+	{
+	case Camera::fill:
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		break;
+	case Camera::point:
+		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+		break;
+	case Camera::wireframe:
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		break;
+	}
 
 	// Clear our screen every frame
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
@@ -644,7 +693,7 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera){
 			boundShader->Bind();
 			boundShader->SetUniform("a_CameraPos", camera->GetPosition());
 			boundShader->SetUniform("a_Time", static_cast<float>(glfwGetTime()));
-			
+
 		}
 
 		// If our material has changed, we need to apply it to the shader
@@ -707,4 +756,9 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera){
 		glEnable(GL_CULL_FACE);
 		glDepthFunc(GL_LESS);
 	}
+}
+
+void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
+{
+	LOG_INFO("CLick");
 }
