@@ -10,7 +10,10 @@ uniform float a_WaterAlpha; // The alpha value for all water rendering (quick ha
 uniform float a_WaterClarity; // Mixing value for water albedo and reflection / refraction effects
 uniform float a_FresnelPower; // How much reflection is applied
 uniform float a_RefractionIndex; // Should be source / material refractive index (1 / 1.33 for water)
-uniform samplerCube s_Environment;void main() {
+
+uniform samplerCube s_Environment;
+
+void main() {
  // Re-normalize our input, so that it is always length 1
  vec3 norm = normalize(inNormal);
  // Determine the direction between the camera and the pixel
@@ -19,7 +22,9 @@ uniform float a_RefractionIndex; // Should be source / material refractive index
  vec3 reflection = normalize(reflect(viewDir, norm));
  vec3 refraction = normalize(refract(viewDir, norm, a_RefractionIndex));
  vec3 reflected = texture(s_Environment, reflection.xzy).rgb;
- vec3 refracted = texture(s_Environment, refraction.xzy).rgb; // Calculate our fresnel power
+ vec3 refracted = texture(s_Environment, refraction.xzy).rgb;
+
+ // Calculate our fresnel power
  vec3 fresnel = vec3(dot(-viewDir, norm)) * a_FresnelPower;
  // Combine our refracted and reflected components
  vec3 environmentVal = refracted * (1.0 - fresnel) + reflected * fresnel;

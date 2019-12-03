@@ -29,7 +29,8 @@ public:
 	void Set(const std::string& name, const TextureCube::Sptr& value, const TextureSampler::Sptr& sampler = nullptr) {
 		myCubeMaps[name] = { value, sampler };
 	}
-	void Set(const std::string & name, const int& value) { myInts[name] = value; }
+	void Set(const std::string & name, const int& value) { myInts[name] = value; }
+
 
 	// New in tutorial 06
 	void Set(const std::string& name, const Texture2D::Sptr& value,
@@ -58,5 +59,6 @@ protected:
 		TextureCube::Sptr Texture;
 		TextureSampler::Sptr Sampler;
 	};
-	std::unordered_map<std::string, SamplerCubeInfo> myCubeMaps;
+	std::unordered_map<std::string, SamplerCubeInfo> myCubeMaps;
+
 };

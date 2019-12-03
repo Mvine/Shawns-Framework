@@ -5,4 +5,4 @@
 struct MeshRenderer {
 	Material::Sptr Material;
 	Mesh::Sptr     Mesh;
-};
+}; 

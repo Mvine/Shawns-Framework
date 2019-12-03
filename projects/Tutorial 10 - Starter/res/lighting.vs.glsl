@@ -29,7 +29,8 @@ void main() {
  sin(inPosition.x / 2.0f) / 2 + 0.5,
  cos(inPosition.x * 3.7f) / 2 + 0.5,
  sin(inPosition.y) / 2 + 0.5
- );
+ );
+
 
 	// New in tutorial 06
 	outUV = inUV;
