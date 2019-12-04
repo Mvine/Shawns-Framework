@@ -409,8 +409,8 @@ void Game::LoadContent() {
 		testMat->Set("a_Waves[0]", { 1.0f, 0.0f, 0.15f, 3.0f });
 		testMat->Set("a_Waves[1]", { 0.0f, 1.0f, 0.10f, 8.0f });
 		testMat->Set("a_Waves[2]", { 1.0f, 1.4f, 0.05f, 3.2f });
-		testMat->Set("a_WaterAlpha", 0.7f);
-		testMat->Set("a_WaterColor", { 0.6f, 0.7f, 0.85f });
+		testMat->Set("a_WaterAlpha", 0.8f);
+		testMat->Set("a_WaterColor", { 0.6f, 0.7f, 1.0f });
 		testMat->Set("a_WaterClarity", 0.5f);
 		testMat->Set("a_FresnelPower", 0.2f);
 		testMat->Set("a_RefractionIndex", 1.0f / 1.34f);
