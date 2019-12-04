@@ -383,6 +383,8 @@ void Game::LoadContent() {
 		testMat->Set("a_LightShininess", 256.0f);
 		testMat->Set("a_LightAttenuation", 1.0f / 100.0f);
 		// Previously testMat->Set("s_Albedo", albedo, Linear);
+
+		//I used my own textures, instead of sand grass and rock, the heightmap makes for nice snow
 		testMat->Set("s_Albedos[0]", Texture2D::LoadFromFile("moss.jpg"), Linear);
 		testMat->Set("s_Albedos[1]", Texture2D::LoadFromFile("dirt.jpg"), Linear);
 		testMat->Set("s_Albedos[2]", Texture2D::LoadFromFile("heightmap.bmp"), Linear);
@@ -767,6 +769,10 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera)
 
 		// Get the object's transformation
 		glm::mat4 worldTransform = transform.GetWorldTransform();
+
+
+		//If you end up seeing this, yeah this is a terrible way to do it I know
+		worldTransform = glm::translate(worldTransform, glm::vec3(-10.0f, -10.0f, -3.0f));
 
 		// Our normal matrix is the inverse-transpose of our object's world rotation
 		glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(worldTransform)));
