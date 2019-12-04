@@ -52,6 +52,11 @@ void GlDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 //Mouse Callback Prototype
 void mouseClickCallback(GLFWwindow* window, int button, int action, int mods);
 
+//Global Variables
+double mousePosX, mousePosY;
+
+std::unordered_map<int, Camera::Sptr> cameraMap;
+
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
 	Game* game = (Game*)glfwGetWindowUserPointer(window);
@@ -257,19 +262,26 @@ void Game::LoadContent() {
 	activeCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 	activeCamera->Projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.01f, 1000.0f);
 
+	//Top Left (Ortho Top)
+	Camera2 = std::make_shared<Camera>();
+	Camera2->SetPosition(glm::vec3(0, 0, 15));
+	Camera2->LookAt(glm::vec3(0), glm::vec3(0, 1, 0));
+	Camera2->drawMode = Camera::wireframe;
+	Camera2->Projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 100.0f);
+
 	//Bottom Left (Ortho Left)
 	myCamera = std::make_shared<Camera>();
 	myCamera->SetPosition(glm::vec3(0, -15, -0.5));
 	myCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 	myCamera->drawMode = Camera::wireframe;
-	myCamera->Projection = glm::ortho(0, 1, 1, 0, 0, 100);
+	myCamera->Projection = glm::ortho(-5.0f, 5.0f, 5.0f, -5.0f, 0.0f, 100.0f);
 
-	//Top Left (Ortho Top)
-	Camera2 = std::make_shared<Camera>();
-	Camera2->SetPosition(glm::vec3(0, 0.0000001, 15)); //for some reason if the camera's normal becomes (0,0,-1) it draws black
-	Camera2->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
-	Camera2->drawMode = Camera::wireframe;
-	Camera2->Projection = glm::ortho(0, 1, 1, 0, 0, 100);
+	//Top Right (Ortho Front)
+	Camera4 = std::make_shared<Camera>();
+	Camera4->SetPosition(glm::vec3(15, 0, 0));
+	Camera4->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
+	Camera4->drawMode = Camera::wireframe;
+	Camera4->Projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 100.0f);
 
 	//Bottom Right (Perspective)
 	Camera3 = std::make_shared<Camera>();
@@ -277,12 +289,11 @@ void Game::LoadContent() {
 	Camera3->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 	Camera3->Projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.01f, 1000.0f);
 
-	//Top Right (Ortho Front)
-	Camera4 = std::make_shared<Camera>();
-	Camera4->SetPosition(glm::vec3(15, 0, 0));
-	Camera4->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
-	Camera4->drawMode = Camera::wireframe;
-	Camera4->Projection = glm::ortho(0, 1, 1, 0, 0, 100);
+	cameraMap[0] = activeCamera;
+	cameraMap[1] = Camera2;
+	cameraMap[2] = myCamera;
+	cameraMap[3] = Camera4;
+	cameraMap[4] = Camera3;
 
 	// Create our 4 vertices
 	Vertex vertices[4] = {
@@ -389,6 +400,8 @@ void Game::LoadContent() {
 		m1.Material = testMat;
 		m1.Mesh = MakeSubdividedPlane(20.0f, 100);
 	}
+
+	glfwSetMouseButtonCallback(myWindow, mouseClickCallback);
 }
 
 
@@ -467,10 +480,8 @@ void Game::Update(float deltaTime) {
 	glm::vec3 movement = glm::vec3(0.0f);
 	glm::vec3 rotation = glm::vec3(0.0f);
 
-	float speed = 1.0f;
+	float speed = 10.0f;
 	float rotSpeed = 1.0f;
-
-	double mousePosX, mousePosY;
 
 	if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
 		movement.z -= speed * deltaTime;
@@ -499,19 +510,18 @@ void Game::Update(float deltaTime) {
 		rotation.y += rotSpeed * deltaTime;
 
 	// Rotate and move our camera based on input
-	myCamera->Rotate(rotation);
-	myCamera->Move(movement);
+	for (int i = 0; i < cameraMap.size(); i++)
+	{
+		if (cameraMap[i]->isSelected)
+		{
+			cameraMap[i]->Rotate(rotation);
+			cameraMap[i]->Move(movement);
+		}
+	}
 
-
-
-	//TODO: Mouse stuff for window selection
+	//Polling mouse position for window selection
 	glfwGetCursorPos(myWindow, &mousePosX, &mousePosY);
 
-	LOG_INFO(std::to_string(mousePosX));
-	LOG_INFO(std::to_string(mousePosY));
-
-	glfwSetMouseButtonCallback(myWindow, mouseClickCallback);
-	
 	// Rotate our transformation matrix a little bit each frame
 	myModelTransform = glm::rotate(myModelTransform, deltaTime, glm::vec3(0, 0, 1));
 
@@ -578,51 +588,57 @@ void Game::DrawGui(float deltaTime) {
 	// Start a new ImGui header for our camera settings
 	if (ImGui::CollapsingHeader("Camera Settings")) {
 		// Draw our camera's normal
-		glm::vec3 camNormal = myCamera->GetForward();
+		glm::vec3 camNormal = activeCamera->GetForward();
 		ImGui::DragFloat3("Normal", &camNormal[0]);
 
 		// Get the camera's position so we can edit it
-		glm::vec3 position = myCamera->GetPosition();
+		glm::vec3 position = activeCamera->GetPosition();
 		// Draw an editor control for the position, and update camera position
 		if (ImGui::DragFloat3("Position", &position[0])) {
-			myCamera->SetPosition(position);
+			activeCamera->SetPosition(position);
 		}
 		if (ImGui::Button("Look at center")) {
-			myCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
+			activeCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 		}
 		// Get the camera pinning value
 		static glm::vec3 camPin;
 
 		// Get whether or not camera pinning is enabled
-		bool camPlaneEnabled = myCamera->GetPinnedUp().has_value();
+		bool camPlaneEnabled = activeCamera->GetPinnedUp().has_value();
 		// Draw a checkbox for camera pinning
 		if (ImGui::Checkbox("Pinning Enabled", &camPlaneEnabled)) {
 			// If we've disabled pinning, cache our pinning vector and remove it
 			if (!camPlaneEnabled) {
-				camPin = myCamera->GetPinnedUp().value();
-				myCamera->SetPinnedUp(std::optional<glm::vec3>());
+				camPin = activeCamera->GetPinnedUp().value();
+				activeCamera->SetPinnedUp(std::optional<glm::vec3>());
 			}
 			// Set our camera's pinning vector to our cached value
 			else {
-				myCamera->SetPinnedUp(camPin);
+				activeCamera->SetPinnedUp(camPin);
 			}
 		}
 		// If we have enabled pinning
 		if (camPlaneEnabled) {
 			// Draw a slider for our camera pin direction
 			if (ImGui::InputFloat3("Pin Direction", &camPin[0])) {
-				myCamera->SetPinnedUp(camPin);
+				activeCamera->SetPinnedUp(camPin);
 			}
 		}
 	}
 	ImGui::End();
 }
 
-void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera) {
+void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera) 
+{
+
 	glViewport(viewport.x, viewport.y, viewport.z, viewport.w);
 	glScissor(viewport.x, viewport.y, viewport.z, viewport.w);
 
-	glm::vec4 borderColor = { 1.0f, 0.5f, 1.0f, 1.0f };
+	glm::vec4 borderColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+
+	if (camera->isSelected)
+		borderColor = { 1.0f, 0.5f, 1.0f, 1.0f };
+
 	int border = 4; // 4px border
 	// Clear with the border color
 	glClearColor(borderColor.x, borderColor.y, borderColor.z, borderColor.w);
@@ -631,7 +647,7 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera) {
 	glViewport(viewport.x + border, viewport.y + border, viewport.z - 2 * border, viewport.w - 2 * border);
 	glScissor(viewport.x + border, viewport.y + border, viewport.z - 2 * border, viewport.w - 2 * border);
 
-	switch(camera->drawMode)
+	switch (camera->drawMode)
 	{
 	case Camera::fill:
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -760,5 +776,59 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera) {
 
 void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
 {
-	LOG_INFO("CLick");
+	int windowSizeX, windowSizeY;
+
+	glfwGetWindowSize(window, &windowSizeX, &windowSizeY);
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		for (int i = 0; i < cameraMap.size() ; i++)
+		{
+			cameraMap[i]->isSelected = false;
+			cameraMap[i]->isFullScreen = false;
+		}
+
+		if (mousePosX < windowSizeX / 2 && mousePosY < windowSizeY / 2)
+		{
+			cameraMap[0] = cameraMap[1];
+			cameraMap[1]->isSelected = true;
+		}
+		else if (mousePosX < windowSizeX / 2 && mousePosY > windowSizeY / 2)
+		{
+			cameraMap[0] = cameraMap[2];
+			cameraMap[2]->isSelected = true;
+		}
+		else if (mousePosX > windowSizeX / 2 && mousePosY < windowSizeY / 2)
+		{
+			cameraMap[0] = cameraMap[3];
+			cameraMap[3]->isSelected = true;
+		}
+		else if (mousePosX > windowSizeX / 2 && mousePosY > windowSizeY / 2)
+		{
+			cameraMap[0] = cameraMap[4];
+			cameraMap[4]->isSelected = true;
+		}
+	}
+
+	//TODO: Fullscreen on right click
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+	{
+		if (mousePosX < windowSizeX / 2 && mousePosY < windowSizeY / 2)
+		{
+			cameraMap[0] = cameraMap[1];
+			cameraMap[1]->isFullScreen = true;
+		}
+		else if (mousePosX > windowSizeX / 2 && mousePosY < windowSizeY / 2)
+		{
+			LOG_INFO("Top Right");
+		}
+		else if (mousePosX < windowSizeX / 2 && mousePosY > windowSizeY / 2)
+		{
+			LOG_INFO("Bottom Left");
+		}
+		else if (mousePosX > windowSizeX / 2 && mousePosY > windowSizeY / 2)
+		{
+			LOG_INFO("Bottom Right");
+		}
+	}
 }

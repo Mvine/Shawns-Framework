@@ -60,6 +60,12 @@ public:
 	// Draw mode
 	DrawMode drawMode = fill;
 
+	//Boolean for selection
+	bool isSelected = false;
+
+	//Boolean for fullscreen
+	bool isFullScreen = false;
+
 protected:
 	// An optional member for camera pinning
 	std::optional<glm::vec3> myPinnedUp;
