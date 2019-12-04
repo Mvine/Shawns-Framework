@@ -16,6 +16,7 @@
 #include "Material.h"
 
 #include "Texture2D.h"
+#include "TextureSampler.h"
 #include "ObjLoader.h"
 
 #include "Transform.h"
@@ -182,7 +183,7 @@ Mesh::Sptr MakeSubdividedPlane(float size, int numSections, bool worldUvs = true
 	Vertex* vertices = new Vertex[vertexCount];
 	uint32_t* indices = new uint32_t[indexCount];
 	// Determine where to start vertices from, and the step pre grid square
-	float start = -size / 2.0f;
+	float start = 0;
 	float step = size / numSections;
 	// Iterate over the grid's edge vertices
 	for (int ix = 0; ix <= numSections; ix++) {
@@ -190,9 +191,9 @@ Mesh::Sptr MakeSubdividedPlane(float size, int numSections, bool worldUvs = true
 			// Get a reference to the vertex so we can modify it
 			Vertex& vert = vertices[ix * numEdgeVerts + iy];
 			// Set its position
-			vert.Position.x = start + ix * step;
-			vert.Position.y = start + iy * step;
-			vert.Position.z = 0.0f;
+			vert.Position.x = (start + ix * step);
+			vert.Position.y = (start + iy * step);
+			vert.Position.z = 0.6f;
 			// Set its normal
 			vert.Normal = glm::vec3(0, 0, 1);
 			// The UV will go from [0, 1] across the entire plane (can change this later)
@@ -271,13 +272,15 @@ void Game::LoadContent() {
 	Camera2->LookAt(glm::vec3(0), glm::vec3(0, 1, 0));
 	Camera2->drawMode = Camera::wireframe;
 	Camera2->Projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 100.0f);
+	Camera2->isOrtho = true;
 
 	//Bottom Left (Ortho Left)
 	myCamera = std::make_shared<Camera>();
 	myCamera->SetPosition(glm::vec3(0, -15, -0.5));
 	myCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 	myCamera->drawMode = Camera::wireframe;
-	myCamera->Projection = glm::ortho(-5.0f, 5.0f, 5.0f, -5.0f, 0.0f, 100.0f);
+	myCamera->Projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 100.0f);
+	myCamera->isOrtho = true;
 
 	//Top Right (Ortho Front)
 	Camera4 = std::make_shared<Camera>();
@@ -285,6 +288,7 @@ void Game::LoadContent() {
 	Camera4->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 	Camera4->drawMode = Camera::wireframe;
 	Camera4->Projection = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, 0.0f, 100.0f);
+	Camera4->isOrtho = true;
 
 	//Bottom Right (Perspective)
 	Camera3 = std::make_shared<Camera>();
@@ -364,36 +368,51 @@ void Game::LoadContent() {
 	};
 	scene->Skybox = TextureCube::LoadFromFiles(files);
 
-	{ // Push a new scope so that we don't step on other names
+	//Terrain Plane
+	{
 		Shader::Sptr mountainShader = std::make_shared<Shader>();
 		mountainShader->Load("mountainVertex.vs.glsl", "mountainFragment.fs.glsl");
+		//mountainShader->Load("passthrough.vs.glsl", "passthrough.fs.glsl");
 		Material::Sptr testMat = std::make_shared<Material>(mountainShader);
 
-		// Format is: [xDir, yDir, "steepness", wavelength] (note that the sum of steepness should be < 1 to avoid loops)
+		testMat->Set("a_LightPos", { 2, 0, 4 });
+		testMat->Set("a_LightColor", { 1.0f, 1.0f, 1.0f });
+		testMat->Set("a_AmbientColor", { 1.0f, 1.0f, 1.0f });
+		testMat->Set("a_AmbientPower", 0.1f);
+		testMat->Set("a_LightSpecPower", 0.5f);
+		testMat->Set("a_LightShininess", 256.0f);
+		testMat->Set("a_LightAttenuation", 1.0f / 100.0f);
+		// Previously testMat->Set("s_Albedo", albedo, Linear);
+		testMat->Set("s_Albedos[0]", Texture2D::LoadFromFile("moss.jpg"), Linear);
+		testMat->Set("s_Albedos[1]", Texture2D::LoadFromFile("dirt.jpg"), Linear);
+		testMat->Set("s_Albedos[2]", Texture2D::LoadFromFile("heightmap.bmp"), Linear);
+
+		testMat->Set("s_HeightMap", Texture2D::LoadFromFile("heightmap.bmp"), Linear);
 
 		testMat->Set("s_Environment", scene->Skybox);
-		testMat->HasTransparency = true;
+		testMat->HasTransparency = false;
 		auto& ecs = GetRegistry("Test"); // If you've changed the name of the scene, you'll need to modify this!
 		entt::entity e1 = ecs.create();
 		MeshRenderer& m1 = ecs.assign<MeshRenderer>(e1);
 		m1.Material = testMat;
-		m1.Mesh = MakeSubdividedPlane(20.0f, 100);
+		m1.Mesh = MakeSubdividedPlane(20.0f, 200, false);
 	}
 
-	{ // Push a new scope so that we don't step on other names
+	//Water Plane
+	{
 		Shader::Sptr waterShader = std::make_shared<Shader>();
 		waterShader->Load("water-shader.vs.glsl", "water-shader.fs.glsl");
 		Material::Sptr testMat = std::make_shared<Material>(waterShader);
 		testMat->Set("a_EnabledWaves", 3);
-		testMat->Set("a_Gravity", 9.81f / 20);
+		testMat->Set("a_Gravity", 9.81f / 35);
 		// Format is: [xDir, yDir, "steepness", wavelength] (note that the sum of steepness should be < 1 to avoid loops)
-		testMat->Set("a_Waves[0]", { 0.1f, 0.0f, 0.20f, 6.0f });
-		testMat->Set("a_Waves[1]", { 0.0f, 0.1f, 0.15f, 3.1f });
-		testMat->Set("a_Waves[2]", { 0.1f, 1.4f, 0.10f, 1.8f });
-		testMat->Set("a_WaterAlpha", 0.75f);
-		testMat->Set("a_WaterColor", { 0.8f, 1.0f, 0.95f });
-		testMat->Set("a_WaterClarity", 0.9f);
-		testMat->Set("a_FresnelPower", 0.5f);
+		testMat->Set("a_Waves[0]", { 1.0f, 0.0f, 0.15f, 3.0f });
+		testMat->Set("a_Waves[1]", { 0.0f, 1.0f, 0.10f, 8.0f });
+		testMat->Set("a_Waves[2]", { 1.0f, 1.4f, 0.05f, 3.2f });
+		testMat->Set("a_WaterAlpha", 0.7f);
+		testMat->Set("a_WaterColor", { 0.6f, 0.7f, 0.85f });
+		testMat->Set("a_WaterClarity", 0.5f);
+		testMat->Set("a_FresnelPower", 0.2f);
 		testMat->Set("a_RefractionIndex", 1.0f / 1.34f);
 		testMat->Set("s_Environment", scene->Skybox);
 		testMat->HasTransparency = true;
@@ -405,6 +424,7 @@ void Game::LoadContent() {
 	}
 
 	glfwSetMouseButtonCallback(myWindow, mouseClickCallback);
+	//this should be used only for the perspective window
 	glfwSetCursorPosCallback(myWindow, mouseMoveCallback);
 }
 
@@ -481,53 +501,61 @@ void Game::ImGuiEndFrame() {
 }
 
 void Game::Update(float deltaTime) {
+
+	//Ortho controls
 	glm::vec3 movement = glm::vec3(0.0f);
-	glm::vec3 rotation = glm::vec3(0.0f);
 
 	float speed = 10.0f;
-	float rotSpeed = 5.0f;
 
-	if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
-		movement.z -= speed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_S) == GLFW_PRESS)
-		movement.z += speed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_A) == GLFW_PRESS)
-		movement.x -= speed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_D) == GLFW_PRESS)
-		movement.x += speed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
-		movement.y += speed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-		movement.y -= speed * deltaTime;
+	//ortho camera controls
+	if (cameraMap[0]->isOrtho)
+	{
+		if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
+			movement.y += speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_S) == GLFW_PRESS)
+			movement.y -= speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_A) == GLFW_PRESS)
+			movement.x -= speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_D) == GLFW_PRESS)
+			movement.x += speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
+			movement.z += speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			movement.z -= speed * deltaTime;
+	}
 
-	if (glfwGetKey(myWindow, GLFW_KEY_Q) == GLFW_PRESS)
-		rotation.z -= rotSpeed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_E) == GLFW_PRESS)
-		rotation.z += rotSpeed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_UP) == GLFW_PRESS)
-		rotation.x -= rotSpeed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_DOWN) == GLFW_PRESS)
-		rotation.x += rotSpeed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_LEFT) == GLFW_PRESS)
-		rotation.y -= rotSpeed * deltaTime;
-	if (glfwGetKey(myWindow, GLFW_KEY_RIGHT) == GLFW_PRESS)
-		rotation.y += rotSpeed * deltaTime;
+	else
+	{
+		if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
+			movement.z -= speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_S) == GLFW_PRESS)
+			movement.z += speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_A) == GLFW_PRESS)
+			movement.x -= speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_D) == GLFW_PRESS)
+			movement.x += speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_SPACE) == GLFW_PRESS)
+			movement.y += speed * deltaTime;
+		if (glfwGetKey(myWindow, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+			movement.y -= speed * deltaTime;
+	}
+
+	//Escape to deselect window
+	if (glfwGetKey(myWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		for (int i = 0; i < cameraMap.size(); i++)
+		{
+			cameraMap[i]->isSelected = false;
+			cameraMap[i]->isFullScreen = false;
+		}
+
 
 	// Rotate and move our camera based on input
-	for (int i = 0; i < cameraMap.size(); i++)
-	{
-		if (cameraMap[i]->isSelected)
-		{
-			cameraMap[i]->Rotate(rotation);
-			cameraMap[i]->Move(movement);
-		}
-	}
+	//should only use this for ortho projection
+
+	cameraMap[0]->Move(movement);
 
 	//Polling mouse position for window selection
 	glfwGetCursorPos(myWindow, &mousePosX, &mousePosY);
-	
-	// Rotate our transformation matrix a little bit each frame
-	myModelTransform = glm::rotate(myModelTransform, deltaTime, glm::vec3(0, 0, 1));
 
 	auto view = CurrentRegistry().view<UpdateBehaviour>();
 	for (const auto& e : view) {
@@ -560,23 +588,18 @@ void Game::Draw(float deltaTime) {
 	myWindowSize.x / 2 , myWindowSize.y / 2,
 	myWindowSize.x / 2, myWindowSize.y / 2 };
 
-
-	//fix all the glitching by changing this, you're redrawing everything every frame
-	for (int i = 0; i < cameraMap.size(); i++)
+	if (cameraMap[0]->isFullScreen)
 	{
-		if (cameraMap[i]->isFullScreen)
-		{
-			_RenderScene(viewportFull, cameraMap[i]);
-			glfwSetInputMode(myWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-		}
-		else
-		{
-			_RenderScene(viewport, myCamera);
-			_RenderScene(viewport2, Camera2);
-			_RenderScene(viewport3, Camera3);
-			_RenderScene(viewport4, Camera4);
-			glfwSetInputMode(myWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
+		_RenderScene(viewportFull, cameraMap[0]);
+		glfwSetInputMode(myWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	}
+	else
+	{
+		_RenderScene(viewport, myCamera);
+		_RenderScene(viewport2, Camera2);
+		_RenderScene(viewport3, Camera3);
+		_RenderScene(viewport4, Camera4);
+		glfwSetInputMode(myWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	}
 }
 
@@ -686,7 +709,6 @@ void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera)
 	glClearColor(myClearColor.x, myClearColor.y, myClearColor.z, myClearColor.w);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//myScene.Render(deltaTime);
 
 	// We'll grab a reference to the ecs to make things easier
 	auto& ecs = CurrentRegistry();
@@ -802,7 +824,7 @@ void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
 
 	glfwGetWindowSize(window, &windowSizeX, &windowSizeY);
 
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) //Left click for window selection
 	{
 		for (int i = 0; i < cameraMap.size(); i++)
 		{
@@ -832,8 +854,7 @@ void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
 		}
 	}
 
-	//TODO: Fullscreen on right click
-	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) //Right click for fullscreen
 	{
 
 		for (int i = 0; i < cameraMap.size(); i++)
@@ -871,27 +892,32 @@ void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
 
 void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (firstMouse)
+
+	//TODO: this technically works but there are axis issues cause quaternions
+	if (!cameraMap[0]->isOrtho)
 	{
+		if (firstMouse)
+		{
+			lastX = xpos;
+			lastY = ypos;
+			firstMouse = false;
+		}
+
+		float xoffset = xpos - lastX;
+		float yoffset = lastY - ypos;
 		lastX = xpos;
 		lastY = ypos;
-		firstMouse = false;
-	}
 
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos;
-	lastX = xpos;
-	lastY = ypos;
+		float sensitivity = 0.001;
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
 
-	float sensitivity = 0.0005;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	for (int i = 0; i < cameraMap.size(); i++)
-	{
-		if(cameraMap[i]->isSelected)
+		for (int i = 0; i < cameraMap.size(); i++)
 		{
-			cameraMap[i]->Rotate(glm::vec3(-yoffset, xoffset, 0));
+			if (cameraMap[i]->isSelected)
+			{
+				cameraMap[i]->Rotate(glm::vec3(-yoffset, xoffset, 0));
+			}
 		}
 	}
 

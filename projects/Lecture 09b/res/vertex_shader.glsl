@@ -16,9 +16,6 @@ void main() {
 	
 	vec3 v = vertex_pos;
 	v.y = texture(myTextureSampler, vextex_uv).r;
-	//v.y = 0;
-
-	//v.y += sin(5.0*v.x + time) * 0.25;
 
 	gl_Position = MVP * vec4(v, 1.0);
 	texUV = vextex_uv;

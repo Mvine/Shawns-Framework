@@ -47,9 +47,9 @@ vec3 GerstnerWave(vec4 waveInfo, vec3 pos, inout vec3 tangent, inout vec3 binorm
  );
  // Calculate our position as affected by the wave
  return vec3(
- dir.x * (a * cos(f)),
- dir.y * (a * cos(f)),
- a * sin(f)
+ dir.x * (a * cos(f)) / 2,
+ dir.y * (a * cos(f)) / 2,
+ a * sin(f) /2 
  );
 }
 

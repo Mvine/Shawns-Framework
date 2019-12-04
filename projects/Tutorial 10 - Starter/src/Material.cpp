@@ -44,4 +44,5 @@ void Material::Apply() {
 	}
 	else {
 		glDisable(GL_BLEND);
-	}}
+	}
+}

@@ -66,6 +66,9 @@ public:
 	//Boolean for fullscreen
 	bool isFullScreen = false;
 
+	//Boolean for ortho for controls
+	bool isOrtho = false;
+
 protected:
 	// An optional member for camera pinning
 	std::optional<glm::vec3> myPinnedUp;
