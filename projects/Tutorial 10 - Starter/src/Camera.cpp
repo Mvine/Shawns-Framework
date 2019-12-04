@@ -51,4 +51,3 @@ void Camera::SetPosition(const glm::vec3& pos) {
 	myView[3] = glm::vec4(-(glm::mat3(myView) * pos), 1.0f);
 	myPosition = pos;
 }
-

@@ -15,8 +15,8 @@ uniform float time;
 void main() {
 	
 	vec3 v = vertex_pos;
-	//v.y = texture(myTextureSampler, vextex_uv).r;
-	v.y = 0;
+	v.y = texture(myTextureSampler, vextex_uv).r;
+	//v.y = 0;
 
 	//v.y += sin(5.0*v.x + time) * 0.25;
 

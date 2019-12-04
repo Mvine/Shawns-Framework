@@ -16,7 +16,7 @@ unsigned char* image;
 int width, height;
 
 void loadImage() {
-	int channels;
+	int channels; 
 	stbi_set_flip_vertically_on_load(true);
 	image = stbi_load("heightmap.bmp",
 		&width,

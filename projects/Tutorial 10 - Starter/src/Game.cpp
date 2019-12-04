@@ -51,11 +51,15 @@ void GlDebugMessage(GLenum source, GLenum type, GLuint id, GLenum severity, GLsi
 
 //Mouse Callback Prototype
 void mouseClickCallback(GLFWwindow* window, int button, int action, int mods);
+static void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
 
 //Global Variables
 double mousePosX, mousePosY;
-
 std::unordered_map<int, Camera::Sptr> cameraMap;
+
+bool firstMouse = true;
+float lastX = 800.0f / 2.0f;
+float lastY = 800.0f / 2.0f;
 
 void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
 	glViewport(0, 0, width, height);
@@ -66,7 +70,6 @@ void GlfwWindowResizedCallback(GLFWwindow* window, int width, int height) {
 }
 
 void Game::Resize(int newWidth, int newHeight) {
-	myCamera->Projection = glm::perspective(glm::radians(60.0f), newWidth / (float)newHeight, 0.01f, 1000.0f);
 	myWindowSize = { newWidth, newHeight };
 }
 
@@ -256,9 +259,9 @@ glm::vec4 testColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
 
 void Game::LoadContent() {
 
-	//Active camera for viewport selection, while leaving the original camera where it was
+	//Active camera for viewport selection
 	activeCamera = std::make_shared<Camera>();
-	activeCamera->SetPosition(glm::vec3(5, 5, 5));
+	activeCamera->SetPosition(glm::vec3(0, 0, 0));
 	activeCamera->LookAt(glm::vec3(0), glm::vec3(0, 0, 1));
 	activeCamera->Projection = glm::perspective(glm::radians(60.0f), 1.0f, 0.01f, 1000.0f);
 
@@ -382,7 +385,7 @@ void Game::LoadContent() {
 		waterShader->Load("water-shader.vs.glsl", "water-shader.fs.glsl");
 		Material::Sptr testMat = std::make_shared<Material>(waterShader);
 		testMat->Set("a_EnabledWaves", 3);
-		testMat->Set("a_Gravity", 9.81f);
+		testMat->Set("a_Gravity", 9.81f / 20);
 		// Format is: [xDir, yDir, "steepness", wavelength] (note that the sum of steepness should be < 1 to avoid loops)
 		testMat->Set("a_Waves[0]", { 0.1f, 0.0f, 0.20f, 6.0f });
 		testMat->Set("a_Waves[1]", { 0.0f, 0.1f, 0.15f, 3.1f });
@@ -402,6 +405,7 @@ void Game::LoadContent() {
 	}
 
 	glfwSetMouseButtonCallback(myWindow, mouseClickCallback);
+	glfwSetCursorPosCallback(myWindow, mouseMoveCallback);
 }
 
 
@@ -481,7 +485,7 @@ void Game::Update(float deltaTime) {
 	glm::vec3 rotation = glm::vec3(0.0f);
 
 	float speed = 10.0f;
-	float rotSpeed = 1.0f;
+	float rotSpeed = 5.0f;
 
 	if (glfwGetKey(myWindow, GLFW_KEY_W) == GLFW_PRESS)
 		movement.z -= speed * deltaTime;
@@ -521,7 +525,7 @@ void Game::Update(float deltaTime) {
 
 	//Polling mouse position for window selection
 	glfwGetCursorPos(myWindow, &mousePosX, &mousePosY);
-
+	
 	// Rotate our transformation matrix a little bit each frame
 	myModelTransform = glm::rotate(myModelTransform, deltaTime, glm::vec3(0, 0, 1));
 
@@ -535,6 +539,10 @@ void Game::Update(float deltaTime) {
 }
 
 void Game::Draw(float deltaTime) {
+
+	glm::ivec4 viewportFull = {
+	0,0,
+	myWindowSize.x, myWindowSize.y };
 
 	glm::ivec4 viewport = {
 	0,0,
@@ -552,10 +560,24 @@ void Game::Draw(float deltaTime) {
 	myWindowSize.x / 2 , myWindowSize.y / 2,
 	myWindowSize.x / 2, myWindowSize.y / 2 };
 
-	_RenderScene(viewport, myCamera);
-	_RenderScene(viewport2, Camera2);
-	_RenderScene(viewport3, Camera3);
-	_RenderScene(viewport4, Camera4);
+
+	//fix all the glitching by changing this, you're redrawing everything every frame
+	for (int i = 0; i < cameraMap.size(); i++)
+	{
+		if (cameraMap[i]->isFullScreen)
+		{
+			_RenderScene(viewportFull, cameraMap[i]);
+			glfwSetInputMode(myWindow, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+		}
+		else
+		{
+			_RenderScene(viewport, myCamera);
+			_RenderScene(viewport2, Camera2);
+			_RenderScene(viewport3, Camera3);
+			_RenderScene(viewport4, Camera4);
+			glfwSetInputMode(myWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
+	}
 }
 
 void Game::DrawGui(float deltaTime) {
@@ -628,7 +650,7 @@ void Game::DrawGui(float deltaTime) {
 	ImGui::End();
 }
 
-void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera) 
+void Game::_RenderScene(glm::ivec4 viewport, Camera::Sptr camera)
 {
 
 	glViewport(viewport.x, viewport.y, viewport.z, viewport.w);
@@ -782,7 +804,7 @@ void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
 	{
-		for (int i = 0; i < cameraMap.size() ; i++)
+		for (int i = 0; i < cameraMap.size(); i++)
 		{
 			cameraMap[i]->isSelected = false;
 			cameraMap[i]->isFullScreen = false;
@@ -813,22 +835,64 @@ void mouseClickCallback(GLFWwindow* window, int button, int action, int mods)
 	//TODO: Fullscreen on right click
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
 	{
+
+		for (int i = 0; i < cameraMap.size(); i++)
+		{
+			cameraMap[i]->isSelected = false;
+			cameraMap[i]->isFullScreen = false;
+		}
+
 		if (mousePosX < windowSizeX / 2 && mousePosY < windowSizeY / 2)
 		{
 			cameraMap[0] = cameraMap[1];
+			cameraMap[1]->isSelected = true;
 			cameraMap[1]->isFullScreen = true;
-		}
-		else if (mousePosX > windowSizeX / 2 && mousePosY < windowSizeY / 2)
-		{
-			LOG_INFO("Top Right");
 		}
 		else if (mousePosX < windowSizeX / 2 && mousePosY > windowSizeY / 2)
 		{
-			LOG_INFO("Bottom Left");
+			cameraMap[0] = cameraMap[2];
+			cameraMap[2]->isSelected = true;
+			cameraMap[2]->isFullScreen = true;
+		}
+		else if (mousePosX > windowSizeX / 2 && mousePosY < windowSizeY / 2)
+		{
+			cameraMap[0] = cameraMap[3];
+			cameraMap[3]->isSelected = true;
+			cameraMap[3]->isFullScreen = true;
 		}
 		else if (mousePosX > windowSizeX / 2 && mousePosY > windowSizeY / 2)
 		{
-			LOG_INFO("Bottom Right");
+			cameraMap[0] = cameraMap[4];
+			cameraMap[4]->isSelected = true;
+			cameraMap[4]->isFullScreen = true;
 		}
 	}
+}
+
+void mouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.0005;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	for (int i = 0; i < cameraMap.size(); i++)
+	{
+		if(cameraMap[i]->isSelected)
+		{
+			cameraMap[i]->Rotate(glm::vec3(-yoffset, xoffset, 0));
+		}
+	}
+
 }
